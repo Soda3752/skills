@@ -23,6 +23,20 @@
       ]
     },
     {
+      "name": "jira-flow",
+      "source": "./plugins/jira-flow",
+      "description": "Jira 票券工作流的日常 skill：多輪訪談釐清需求 → 產出規格書 → 拆成垂直切片卡片並推上 Jira。",
+      "version": "0.1.0",
+      "category": "workflow",
+      "keywords": [
+        "jira",
+        "spec",
+        "tickets",
+        "grilling",
+        "planning"
+      ]
+    },
+    {
       "name": "report-tools",
       "source": "./plugins/report-tools",
       "description": "繁體中文報告產生工具：技術調查報告（含 Mermaid 流程圖）與版本 What's New / Release Notes。",
