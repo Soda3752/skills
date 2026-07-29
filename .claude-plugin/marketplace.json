@@ -1,0 +1,55 @@
+{
+  "name": "soda-skills",
+  "owner": {
+    "name": "sodalee"
+  },
+  "metadata": {
+    "description": "個人常用 Claude Code skill 集散地，跨機器一鍵安裝",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "workflow-init",
+      "source": "./plugins/workflow-init",
+      "description": "把新專案接上各種工作流的初始化 SOP：Jira 票券工作流、GitNexus 索引、Obsidian vault + MCP。",
+      "version": "0.1.0",
+      "category": "workflow",
+      "keywords": [
+        "jira",
+        "gitnexus",
+        "obsidian",
+        "onboarding",
+        "mcp"
+      ]
+    },
+    {
+      "name": "report-tools",
+      "source": "./plugins/report-tools",
+      "description": "繁體中文報告產生工具：技術調查報告（含 Mermaid 流程圖）與版本 What's New / Release Notes。",
+      "version": "0.1.0",
+      "category": "documentation",
+      "keywords": [
+        "report",
+        "release-notes",
+        "mermaid",
+        "zh-tw"
+      ]
+    },
+    {
+      "name": "kmp-architecture",
+      "source": "./plugins/kmp-architecture",
+      "description": "Kotlin Multiplatform MVVM 架構規格書：Compose Multiplatform 共享 UI、Koin DI、Ktor、Navigation3，含多 subagent 平行改寫工作流。",
+      "version": "0.1.0",
+      "category": "architecture",
+      "keywords": [
+        "kotlin",
+        "kmp",
+        "compose-multiplatform",
+        "mvvm",
+        "koin",
+        "ktor",
+        "navigation3"
+      ]
+    }
+  ]
+}

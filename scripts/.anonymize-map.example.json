@@ -1,0 +1,17 @@
+{
+  "_comment": "把這個檔案複製成 .anonymize-map.json 並填入自己的真實值。那份不進版控。",
+  "substitutions": [
+    ["your-real-site\\.atlassian\\.net", "your-site.atlassian.net"],
+    ["REALKEY-", "PROJ-"],
+    ["\\bREALKEY\\b", "PROJ"],
+    ["fix/realkey-", "fix/proj-"],
+    ["OTHERKEY-", "ACME-"],
+    ["\\bOTHERKEY\\b", "ACME"]
+  ],
+  "secret_patterns": [
+    "[a-z0-9-]+\\.atlassian\\.net",
+    "\\b(REALKEY|OTHERKEY)-[0-9]+\\b",
+    "\\b(REALKEY|OTHERKEY)\\b",
+    "@your-company\\.com"
+  ]
+}

@@ -1,0 +1,8 @@
+.DS_Store
+node_modules/
+
+# 匿名化對照表 = 解碼表，公開它等於匿名化白做
+scripts/.anonymize-map.json
+
+# 內部盤點報告：含代號對照、本機 skill/plugin 清單、絕對路徑
+.claude/

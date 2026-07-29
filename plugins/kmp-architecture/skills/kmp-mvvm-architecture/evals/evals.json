@@ -1,0 +1,23 @@
+{
+  "skill_name": "kmp-mvvm-architecture",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "我有一個新的 KMP 專案骨架，請照這套架構幫我建立一個「會員清單」頁面：進頁面打 GET /api/members 拿清單（欄位 id、name、phone），點某一列跳到詳細頁（帶 id），上方有重新整理按鈕。請完整產出 Screen/ScreenContent/ViewModel/UseCase/Repository 與需要登記的 DI、路由清單。",
+      "expected_output": "產出符合架構鐵律的完整頁面檔案組：ScreenContent 純 UI 含 @Preview 與 sealed MemberListScreenEvent；ViewModel 繼承 BaseViewModel、單一 UiState data class、無 try-catch；UseCase 用 suspend operator invoke；Repository interface+Impl 回傳 Result；並回報 Koin/AppRoute/Endpoints 待登記清單而非直接修改共用檔。",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "這是一個舊的 Android 單 Activity 專案的設定頁（SettingsFragment + XML layout + 直接在 Fragment 裡呼叫 Retrofit），幫我把它改寫成跟這套 KMP 架構一樣，放進 commonMain。注意它原本在 Fragment 裡有用到 SharedPreferences 和 Toast。",
+      "expected_output": "正確分層拆解：Retrofit 呼叫改為 Repository（介面）+ ApiService 慣例；SharedPreferences 改為 localstorage 介面 + Multiplatform Settings；Toast 改為統一 ToastData/一次性事件機制；Fragment UI 邏輯拆成 Screen + ScreenContent 雙檔；無任何 Android 平台 import 殘留在 commonMain。",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "用多個 subagent 平行把目標專案的登入頁、首頁、通知頁三頁改寫成這套架構，你當主 agent 負責協調。",
+      "expected_output": "遵循 skill 的 Phase 流程：先確認基礎設施存在，subagent 各自只動 screen/<feature>/ 等自有檔案並回報待登記清單，主 agent 集中修改 AppModule/AppRoute/App.kt，最後逐頁跑驗收 checklist 與 build。",
+      "files": []
+    }
+  ]
+}

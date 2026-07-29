@@ -1,0 +1,7 @@
+{
+  "name": "kmp-architecture",
+  "description": "Kotlin Multiplatform MVVM 架構規格書：Compose Multiplatform 共享 UI、Koin DI、Ktor、Navigation3，含多 subagent 平行改寫工作流。",
+  "version": "0.1.0",
+  "author": { "name": "sodalee" },
+  "keywords": ["kotlin", "kmp", "compose-multiplatform", "mvvm", "koin", "ktor", "navigation3"]
+}

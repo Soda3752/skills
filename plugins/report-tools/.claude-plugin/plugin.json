@@ -1,0 +1,7 @@
+{
+  "name": "report-tools",
+  "description": "繁體中文報告產生工具：技術調查報告（含 Mermaid 流程圖）與版本 What's New / Release Notes。",
+  "version": "0.1.0",
+  "author": { "name": "sodalee" },
+  "keywords": ["report", "release-notes", "mermaid", "zh-tw"]
+}
