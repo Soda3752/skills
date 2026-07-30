@@ -11,6 +11,7 @@
 /plugin install workflow-init@soda-skills
 /plugin install report-tools@soda-skills
 /plugin install kmp-architecture@soda-skills
+/plugin install agent-fleet@soda-skills
 ```
 
 之後要更新：

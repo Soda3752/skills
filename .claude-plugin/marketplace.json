@@ -64,6 +64,21 @@
         "ktor",
         "navigation3"
       ]
+    },
+    {
+      "name": "agent-fleet",
+      "source": "./plugins/agent-fleet",
+      "description": "在一台機器上經營一群透過 Telegram 溝通的 Claude Code agent：CONFIG/STATE 分離、pane registry、forked telegram plugin、佈建新 agent、跨 OS 移植。",
+      "version": "0.1.0",
+      "category": "infrastructure",
+      "keywords": [
+        "telegram",
+        "multi-agent",
+        "tmux",
+        "fleet",
+        "mcp",
+        "plugin"
+      ]
     }
   ]
 }

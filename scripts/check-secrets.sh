@@ -35,6 +35,12 @@ PATTERNS = [
     (r"AKIA[0-9A-Z]{16}", "AWS access key"),
     (r"-----BEGIN [A-Z ]*PRIVATE KEY-----", "私鑰"),
     (r"/Users/[a-z0-9._-]+/", "本機絕對路徑"),
+    # Windows 側的等價物。原本只擋 /Users/ 形式，所以 D:\Users\... 一路漏過去。
+    (r"[A-Za-z]:\\\\Users\\\\[A-Za-z0-9._-]+", "本機絕對路徑（Windows）"),
+    (r"[A-Za-z]:/Users/[A-Za-z0-9._-]+", "本機絕對路徑（Windows，正斜線）"),
+    # Email：真實信箱不該出現在公開 repo。ALLOWLIST 已放行 example.com/org，
+    # 套件命名空間（@modelcontextprotocol 之類）沒有點分網域，不會誤判。
+    (r"[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+\.[A-Za-z]{2,}", "疑似真實 email"),
     # 任何看起來像 Jira 票號、但不是我們的匿名代號的字串。
     # 這條是為了擋「本機把 project key 換掉、對照表卻沒跟著更新」——
     # 那種情況下寫死代號的樣式會漏，這條還攔得住。

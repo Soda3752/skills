@@ -1,0 +1,7 @@
+{
+  "name": "agent-fleet",
+  "description": "在一台機器上經營一群透過 Telegram 溝通的 Claude Code agent：架構、佈建新 agent、修復失聯的 Telegram channel、跨 OS 移植。",
+  "version": "0.1.0",
+  "author": { "name": "sodalee" },
+  "keywords": ["telegram", "multi-agent", "tmux", "fleet", "mcp", "plugin"]
+}

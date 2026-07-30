@@ -31,7 +31,20 @@ SKILL_MAP=(
   #   gitnexus-cli / guide / exploring / debugging / impact-analysis /
   #   refactoring / pr-review  → 疑似 GitNexus 專案隨附，著作歸屬未確認
   #   rtk-reference            → 依賴本機 hook，對外無法運作
+  #   init_telegram_agent      → 見下方說明，公開版與本機版是不同的東西
 )
+
+# init_telegram_agent（plugins/agent-fleet）不走這條同步線，原因有兩個：
+#
+#   1. 它不住在 ${HOME}/.claude/skills，而是 project scope 的
+#      ~/agent/.claude/skills，這支腳本的 SRC 掃不到。
+#   2. 更根本的是，公開版與本機版在「結構」上就不同，不只是值不同：
+#      本機版有 hosts/<真實主機>.md，記著各機器的 agent 名冊、工具絕對路徑、
+#      bot handle——那是一台停用權限確認在跑 agent 的機器的完整配置圖。
+#      發布的是 hosts/EXAMPLE-host.md 骨架。
+#
+# anonymize.sh 處理的是「同一份檔案裡的值要換掉」，這裡的問題是「整個目錄不該存在」；
+# 用 rsync --delete 同步只會把真實 hosts/ 帶回來。所以公開版由人工維護，改動時兩邊都要動。
 
 filter="${1:-}"
 count=0
