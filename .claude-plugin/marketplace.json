@@ -25,8 +25,8 @@
     {
       "name": "jira-flow",
       "source": "./plugins/jira-flow",
-      "description": "Jira 票券工作流的日常 skill：多輪訪談釐清需求 → 產出規格書 → 拆成垂直切片卡片並推上 Jira；以及唯讀盤點看板，算出哪張票真的可動。",
-      "version": "0.2.0",
+      "description": "Jira 票券工作流的日常 skill：多輪訪談釐清需求 → 產出規格書 → 拆成垂直切片卡片並推上 Jira；唯讀盤點看板算出哪張票真的可動；以及無人監督的 goal loop，一輪一張票把看板推到收斂。",
+      "version": "0.3.0",
       "category": "workflow",
       "keywords": [
         "jira",
@@ -35,7 +35,9 @@
         "grilling",
         "planning",
         "inventory",
-        "status"
+        "status",
+        "goal-loop",
+        "unattended"
       ]
     },
     {

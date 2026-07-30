@@ -26,12 +26,14 @@
 | Plugin | 內容 | 適合誰 |
 | --- | --- | --- |
 | `workflow-init` | `jira-workflow-init`、`gitnexus-init`、`obsidian-init` | 常開新專案、需要固定流程接上外部系統 |
-| `jira-flow` | `grill-to-jira`、`check-jira-status` | 已接上 Jira，日常要開票與盤點看板 |
+| `jira-flow` | `grill-to-jira`、`check-jira-status`、`jira-goal-loop` | 已接上 Jira，日常要開票、盤點看板，或想讓 loop 自己把票做完 |
 | `report-tools` | `pm_report`、`whats-new` | 需要把調查結果或版本差異交付給非工程角色 |
 | `kmp-architecture` | `kmp-mvvm-architecture` | 寫 Kotlin Multiplatform，想把專案統一到同一套 MVVM 架構 |
 | `agent-fleet` | `init_telegram_agent` | 想在一台機器上養一群透過 Telegram 溝通的 Claude Code agent |
 
 `jira-workflow-init` 的預設值放在 `plugins/workflow-init/skills/jira-workflow-init/config/defaults.env`，裡面的站台與 project key 是佔位符，裝完請先改成自己的。文件裡的 `PROJ` / `ACME` 是兩個真實專案的匿名代號。
+
+`jira-goal-loop` 是唯一會**在無人監督下寫程式並 commit** 的 skill，裝了不會自動啟動——要由使用者明確用 `/loop` 帶起來。它讀 `<專案>/.claude/jira-workflow.json` 的 `goalLoop` 區塊決定每輪跑哪些驗證指令，所以那個區塊等於「授權它在本機執行什麼」：**第一次在某個專案跑之前，人眼看過那幾條指令**，不要因為 clone 下來的 repo 附了一份設定就照跑。skill 的「資安紅線」一節寫了完整約束（不 push、不改自己的規則檔、不 commit 憑證、貼進 Jira 前先遮敏感值）。
 
 `agent-fleet` 和其他 plugin 性質不同：它是**設計與維運參考，不是裝了就能跑的工具**。它描述的那套 `~/agents/scripts/*`（`new-agent.sh`、`launch-agent.sh`、`seed-telegram-plugin.sh`…）沒有一起發佈，要自己寫。收錄它的價值在於那些踩過才知道的坑——例如手工安裝 plugin 時漏了 `known_marketplaces.json` 的 `installLocation`，Claude 會**完全不載入該 plugin 且不留任何錯誤訊息**。各機器自己的主機事實（agent 名冊、工具絕對路徑、bot handle）放在 `hosts/`，只有 `hosts/EXAMPLE-host.md` 骨架進版控，理由見下方「這個 repo 不收什麼」。
 

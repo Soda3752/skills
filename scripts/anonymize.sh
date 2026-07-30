@@ -38,6 +38,9 @@ repo = Path(os.environ["REPO"])
 TARGET_DIRS = [
     repo / "plugins/workflow-init/skills/jira-workflow-init",
     repo / "plugins/jira-flow/skills/check-jira-status",
+    # jira-goal-loop 的 index/log 範例通篇用真實票號當示例，且 commit scope 範例
+    # 也帶票號。規則本體無專案值，但範例會踩到。
+    repo / "plugins/jira-flow/skills/jira-goal-loop",
 ]
 targets = [d for d in TARGET_DIRS if d.is_dir()]
 if not targets:

@@ -29,6 +29,7 @@ SKILL_MAP=(
 
   # jira-flow
   "check-jira-status:jira-flow"
+  "jira-goal-loop:jira-flow"
 
   # 刻意未收錄：
   #   gitnexus-cli / guide / exploring / debugging / impact-analysis /
