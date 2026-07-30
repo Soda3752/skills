@@ -9,6 +9,7 @@
 ```
 /plugin marketplace add Soda3752/skills
 /plugin install workflow-init@soda-skills
+/plugin install jira-flow@soda-skills
 /plugin install report-tools@soda-skills
 /plugin install kmp-architecture@soda-skills
 /plugin install agent-fleet@soda-skills
@@ -25,6 +26,7 @@
 | Plugin | 內容 | 適合誰 |
 | --- | --- | --- |
 | `workflow-init` | `jira-workflow-init`、`gitnexus-init`、`obsidian-init` | 常開新專案、需要固定流程接上外部系統 |
+| `jira-flow` | `grill-to-jira`、`check-jira-status` | 已接上 Jira，日常要開票與盤點看板 |
 | `report-tools` | `pm_report`、`whats-new` | 需要把調查結果或版本差異交付給非工程角色 |
 | `kmp-architecture` | `kmp-mvvm-architecture` | 寫 Kotlin Multiplatform，想把專案統一到同一套 MVVM 架構 |
 | `agent-fleet` | `init_telegram_agent` | 想在一台機器上養一群透過 Telegram 溝通的 Claude Code agent |

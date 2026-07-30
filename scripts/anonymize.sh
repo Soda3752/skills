@@ -30,26 +30,42 @@ import re
 from pathlib import Path
 
 repo = Path(os.environ["REPO"])
-jira = repo / "plugins/workflow-init/skills/jira-workflow-init"
-if not jira.is_dir():
+
+# 每個會踩到真實 Jira 值的 skill 都要列在這裡。漏列的後果是靜默的：
+# sync 把真實 project key 搬進來，anonymize 走不到，check-secrets 才攔下來——
+# 那時已經在工作區了。check-jira-status 的文件通篇用真實票號當實測案例
+# （「實測 X-17 掛著 blocks X-22」這種），不是偶爾出現一兩個。
+TARGET_DIRS = [
+    repo / "plugins/workflow-init/skills/jira-workflow-init",
+    repo / "plugins/jira-flow/skills/check-jira-status",
+]
+targets = [d for d in TARGET_DIRS if d.is_dir()]
+if not targets:
     raise SystemExit(0)
+jira = TARGET_DIRS[0]  # 下方逐句改寫只針對 jira-workflow-init
 
 cfg = json.loads(Path(os.environ["MAP"]).read_text(encoding="utf-8"))
 subs = [(re.compile(pat), rep) for pat, rep in cfg["substitutions"]]
 
 # 走訪整個目錄，不是寫死幾個檔名。
 # rsync 會把上游新增的檔案一起搬進來，寫死清單的話新檔會靜默漏掉。
-TEXT_SUFFIXES = {".md", ".env", ".json", ".txt", ".yaml", ".yml", ".toml"}
+# .py 在列表裡是因為 check-jira-status 帶腳本，其 docstring 的用法範例
+# 也寫了真實票號。
+TEXT_SUFFIXES = {".md", ".env", ".json", ".txt", ".yaml", ".yml", ".toml", ".py"}
 touched = 0
-for path in sorted(jira.rglob("*")):
-    if not path.is_file() or path.suffix.lower() not in TEXT_SUFFIXES:
-        continue
-    text = original = path.read_text(encoding="utf-8")
-    for pat, rep in subs:
-        text = pat.sub(rep, text)
-    if text != original:
-        path.write_text(text, encoding="utf-8")
-        touched += 1
+for target in targets:
+    for path in sorted(target.rglob("*")):
+        if not path.is_file() or path.suffix.lower() not in TEXT_SUFFIXES:
+            continue
+        text = original = path.read_text(encoding="utf-8")
+        for pat, rep in subs:
+            text = pat.sub(rep, text)
+        if text != original:
+            path.write_text(text, encoding="utf-8")
+            touched += 1
+
+if not jira.is_dir():
+    raise SystemExit(0)
 
 # 匿名化之後語意會跑掉的句子，逐句改寫
 env_path = jira / "config/defaults.env"
@@ -93,5 +109,6 @@ if "是兩個真實專案的匿名代號" not in skill:
     skill = skill.replace(anchor, notice + anchor, 1)
     skill_path.write_text(skill, encoding="utf-8")
 
-print(f"✅ jira-workflow-init 已匿名化（改寫 {touched} 個檔案）")
+names = ", ".join(d.name for d in targets)
+print(f"✅ 已匿名化 {names}（改寫 {touched} 個檔案）")
 PY

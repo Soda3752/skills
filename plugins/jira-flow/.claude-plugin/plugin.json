@@ -1,7 +1,17 @@
 {
   "name": "jira-flow",
-  "description": "Jira 票券工作流的日常 skill：多輪訪談釐清需求 → 產出規格書 → 拆成垂直切片卡片並推上 Jira。",
-  "version": "0.1.0",
-  "author": { "name": "sodalee" },
-  "keywords": ["jira", "spec", "tickets", "grilling", "planning"]
+  "description": "Jira 票券工作流的日常 skill：多輪訪談釐清需求 → 產出規格書 → 拆成垂直切片卡片並推上 Jira；以及唯讀盤點看板，算出哪張票真的可動。",
+  "version": "0.2.0",
+  "author": {
+    "name": "sodalee"
+  },
+  "keywords": [
+    "jira",
+    "spec",
+    "tickets",
+    "grilling",
+    "planning",
+    "inventory",
+    "status"
+  ]
 }

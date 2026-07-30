@@ -27,6 +27,9 @@ SKILL_MAP=(
   # kmp-architecture
   "kmp-mvvm-architecture:kmp-architecture"
 
+  # jira-flow
+  "check-jira-status:jira-flow"
+
   # 刻意未收錄：
   #   gitnexus-cli / guide / exploring / debugging / impact-analysis /
   #   refactoring / pr-review  → 疑似 GitNexus 專案隨附，著作歸屬未確認
@@ -67,7 +70,7 @@ for entry in "${SKILL_MAP[@]}"; do
 
   dest="${REPO}/plugins/${plugin}/skills/${skill}"
   mkdir -p "$dest"
-  rsync -a --delete --exclude '.DS_Store' "${SRC}/${skill}/" "${dest}/"
+  rsync -a --delete --exclude '.DS_Store' --exclude '__pycache__' --exclude '*.pyc' "${SRC}/${skill}/" "${dest}/"
   echo "✅ ${skill} → plugins/${plugin}/skills/"
   count=$((count + 1))
 done
