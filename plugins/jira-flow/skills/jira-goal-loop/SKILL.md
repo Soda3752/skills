@@ -41,6 +41,7 @@ log 絕對不能覆寫——它唯一的價值就是「第 8 輪的你不要重�
   "maxRoundsPerTicket": 2,       // 同票最多佔用幾輪
   "roundBudgetMinutes": 45,      // 單輪軟上限，超了就收尾排下一輪
   "maxIdleRounds": 2,            // 連續幾輪零產出就停
+  "maxRoundsPerSession": 6,      // 同一個對話 session 最多跑幾輪，滿了就停機請使用者 /clear 重開
   "logPath": ".claude/goal-loop-log.md",
   "indexPath": ".claude/goal-loop-index.md",
   "landminesPath": ".claude/goal-loop-landmines.md",
@@ -164,6 +165,7 @@ flowchart TD
     M --> Z
     Z -->|未收斂| N["ScheduleWakeup → 下一輪"]
     Z -->|已收斂／空轉超限| O["產出總結報告<br/>ScheduleWakeup stop"]
+    Z -->|未收斂但本 session 跑滿| Q["HANDOFF 標換手停機<br/>不產報告<br/>ScheduleWakeup stop"]
 ```
 
 ### 第 1 步：讀取與前置檢查
@@ -181,6 +183,18 @@ flowchart TD
 - `git status` 乾淨（除了 log / index / HANDOFF 這三個 loop 自己的檔案）。有上輪殘留 → 依第 8 節回滾，並在 log 記下是哪一輪漏收的。
 - 當前分支 == `goalLoop.branch`。不是就切回去，不要在別的分支上疊 commit。
 - 若 index 標記上一輪異常中斷（見第 13 步的「收尾標記」），先把那一輪的收尾補完（推狀態、寫註解），再開新輪。
+
+**判定本輪屬於哪個 session**（第 13 步的輪次上限要用）：
+
+`/loop` 的每一輪都在**同一個對話 session** 裡被喚醒，context 只會一路疊上去。所以要能分辨「使用者 `/clear` 重開過」與「還是同一段對話的第 N 次喚醒」。
+
+1. 從系統提示給的 scratchpad 目錄路徑取出 session id — 路徑形如 `…/<project>/<session-uuid>/scratchpad`，`scratchpad` 前一段就是。取前 8 碼即可。
+2. 與 index 的 `**本 session**` 那一行比對：
+   - **相同** → 同一個 session 續跑。`本 session 已跑` 加一。
+   - **不同或該行不存在** → 新 session（使用者 `/clear` 過，或這是第一輪）。把 index 那一行改寫成新 id，`本 session 已跑` 歸 1。
+3. **取不到 session id** → index 記 `session-id 不可得`，第 13 步改用退化判準（見該步）。
+
+新 session 不影響任何其他計數：`已跑輪數`、`連續空轉`、三振紀錄都是跨 session 累計的，只有 `本 session 已跑` 會歸零。
 
 ### 第 2 步：盤點
 
@@ -296,9 +310,29 @@ commit 前跑一次 `git status`，確認沒有意外檔案被夾帶（暫存檔
 1. append 一段到 `logPath`（格式見 `references/log-format.md`）
 2. 覆寫 `indexPath`（格式見 `references/log-format.md`）
 3. 覆寫 `handoffPath`（格式見 `references/handoff-format.md`）
-4. 跑第 1 節的終止判定：
-   - **未收斂** → `ScheduleWakeup`，`prompt` 傳回同一份 `/loop` 輸入，`delaySeconds` 給 60，`reason` 寫「輪 N 完成（PROJ-XX → 完成），排下一輪」
+4. 跑第 1 節的終止判定，再套下面的「session 輪次上限」：
    - **已收斂** → 產出總結報告到 `reportDir/${YYYY_MM_DD}/`，然後 `ScheduleWakeup({stop: true})`
+   - **未收斂，且本 session 未達輪次上限** → `ScheduleWakeup`，`prompt` 傳回同一份 `/loop` 輸入，`delaySeconds` 給 60，`reason` 寫「輪 N 完成（PROJ-XX → 完成），排下一輪」
+   - **未收斂，但本 session 已達輪次上限** → 換手停機，見下
+
+**session 輪次上限**：`本 session 已跑` 達到 `goalLoop.maxRoundsPerSession` 時，**即使還沒收斂也要停**：
+
+1. **不**產出總結報告（那是收斂才做的，會讓使用者誤以為做完了）。
+2. HANDOFF 頂端加一行醒目標記：
+
+   ```markdown
+   > ⚠️ **未收斂，換手停機**：本 session 已跑滿 N 輪。請 `/clear` 後重新下同一份 `/loop` 指令續跑——進度全在 log / index / 本檔，不會遺失。
+   ```
+
+3. index 的 `**本 session**` 那一行標上 `已達上限，待 /clear`。
+4. log 本輪那段的 **結果** 後面補一句「本 session 輪次上限，換手停機」。
+5. `ScheduleWakeup({stop: true})`。
+
+**為什麼要有這條**：`/loop` 的喚醒（不論走 `ScheduleWakeup` 還是 `CronCreate`）都是**同一個 session 的再觸發**，沒有「每輪開新 session」的選項。context 一輪一輪疊上去，超過門檻就被自動摘要壓縮，而最先被壓掉的正是失敗細節與錯誤原文——也就是 log 最該記、下一輪最需要的東西。跑到十幾輪時，loop 表面還在動，實際已經在一份被壓爛的記憶上做決策。
+
+停機是安全的，因為這份規則的狀態**全部外部化在 log / index / landmines / HANDOFF**，`/clear` 後的新 session 照第 1 步重讀就完全接得上。使用者付出的成本是打兩個指令，換到的是每個 session 都在乾淨的 context 上跑。
+
+**退化判準**（第 1 步取不到 session id 時）：改用 `已跑輪數 % maxRoundsPerSession == 0` 觸發同樣的換手停機。代價是使用者若中途自己 `/clear` 過會多停一次，但 context 成長仍有上限——這個方向的誤判是安全的，反過來（永遠不停）不是。
 
 **收尾標記**：進第 4 步之前，先在 index 頂端寫一行 `進行中：輪 N / PROJ-XX`；第 13 步做完就把它改成 `上輪已正常收尾：輪 N`。下一輪的第 1 步靠這一行判斷上輪是否被中斷。
 
@@ -350,6 +384,7 @@ commit 前跑一次 `git status`，確認沒有意外檔案被夾帶（暫存檔
 | `type.outward` 判連結方向 | 兩個描述字串永遠都在，整份可動清單會反過來 | 只看 `inwardIssue` / `outwardIssue` 欄位存在與否 |
 | 設定檔 transition id 過期 | 工作流改過，送舊 id 得到 400 | 每次推狀態前實查 `getTransitionsForJiraIssue` |
 | log 越讀越貴 | 二三十輪後每輪重讀吃掉大量 context | 照第 1 步只讀表頭 + 最後 3 輪，其餘靠 index |
+| 同 session 輪數堆疊 | `/loop` 每輪都在同一段對話裡喚醒，context 反覆被壓縮，失敗細節先被壓掉 | 第 13 步的 session 輪次上限：跑滿就換手停機，使用者 `/clear` 後重下同一份 `/loop` |
 
 ---
 
