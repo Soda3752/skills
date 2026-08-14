@@ -17,8 +17,10 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SKILL_MAP=(
   # workflow-init
   "jira-workflow-init:workflow-init"
+  "linear-workflow-init:workflow-init"
   "obsidian-init:workflow-init"
   "gitnexus-init:workflow-init"
+  "parallel-loop-init:workflow-init"
 
   # report-tools
   "pm_report:report-tools"
@@ -30,6 +32,16 @@ SKILL_MAP=(
   # jira-flow
   "check-jira-status:jira-flow"
   "jira-goal-loop:jira-flow"
+
+  # linear-flow
+  "grill-to-linear:linear-flow"
+  "check-linear-status:linear-flow"
+  "linear-goal-loop:linear-flow"
+  "herdr-codex-wave:linear-flow"
+  "codex-wave:linear-flow"
+  "parallel-wave:linear-flow"
+  "parallel-loop:linear-flow"
+  "parallel-ticket:linear-flow"
 
   # 刻意未收錄：
   #   gitnexus-cli / guide / exploring / debugging / impact-analysis /

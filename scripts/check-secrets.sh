@@ -44,14 +44,25 @@ PATTERNS = [
     # 任何看起來像 Jira 票號、但不是我們的匿名代號的字串。
     # 這條是為了擋「本機把 project key 換掉、對照表卻沒跟著更新」——
     # 那種情況下寫死代號的樣式會漏，這條還攔得住。
-    (r"\b(?!PROJ\b|ACME\b|API\b|CI\b|UI\b)[A-Z]{2,6}-[0-9]+\b", "疑似未匿名的票號"),
+    # 例外清單裡除了匿名代號，還有一批「長得像票號的技術名詞」——
+    # ISO-8601、GPT-5、UTF-8、SHA-256 這種。它們每次都命中、每次都要人工放行，
+    # 而反覆出現的假警報會訓練出「掃出來的東西可以跳過」的習慣，
+    # 那比漏掃一條樣式更危險。
+    (
+        r"\b(?!PROJ\b|ACME\b|API\b|CI\b|UI\b|ISO\b|GPT\b|UTF\b|SHA\b|RFC\b|HTTP\b|IPV\b)"
+        r"[A-Z]{2,6}-[0-9]+\b",
+        "疑似未匿名的票號",
+    ),
 ]
 
 # 刻意留在 repo 裡的佔位符
 ALLOWLIST = re.compile(
     r"your-site\.atlassian\.net|example\.(com|org)|<PROJECT_ROOT>|"
     r"your-real-site\.atlassian\.net|your-company\.com|"
-    r"\b(REALKEY|OTHERKEY)\b"
+    r"\b(REALKEY|OTHERKEY)\b|"
+    # 廠商公用的 no-reply 位址：Codex 產生的 commit 要掛 Co-Authored-By，
+    # 這是官方指定值，不是誰的信箱。
+    r"noreply@(openai|anthropic)\.com"
 )
 
 # 專案專屬樣式（不進版控）

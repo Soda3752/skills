@@ -41,6 +41,13 @@ TARGET_DIRS = [
     # jira-goal-loop 的 index/log 範例通篇用真實票號當示例，且 commit scope 範例
     # 也帶票號。規則本體無專案值，但範例會踩到。
     repo / "plugins/jira-flow/skills/jira-goal-loop",
+    # Linear 側同理：team 前綴（真實票號）散落在所有 linear-flow skill 的
+    # 範例、腳本 docstring、pane 指令樣板裡，不是偶爾出現一兩個。
+    # 這裡直接指整個 plugin 目錄而非逐個 skill——linear-flow 底下每個 skill
+    # 都會踩到票號，逐個列的話新增 skill 時漏列是靜默的。
+    repo / "plugins/linear-flow",
+    repo / "plugins/workflow-init/skills/linear-workflow-init",
+    repo / "plugins/workflow-init/skills/parallel-loop-init",
 ]
 targets = [d for d in TARGET_DIRS if d.is_dir()]
 if not targets:
@@ -54,7 +61,9 @@ subs = [(re.compile(pat), rep) for pat, rep in cfg["substitutions"]]
 # rsync 會把上游新增的檔案一起搬進來，寫死清單的話新檔會靜默漏掉。
 # .py 在列表裡是因為 check-jira-status 帶腳本，其 docstring 的用法範例
 # 也寫了真實票號。
-TEXT_SUFFIXES = {".md", ".env", ".json", ".txt", ".yaml", ".yml", ".toml", ".py"}
+# .sh 在列表裡是因為 linear-flow 帶 shell 腳本（parallel-loop/parallel-ticket），
+# 其註解與用法範例同樣寫了真實票號。
+TEXT_SUFFIXES = {".md", ".env", ".json", ".txt", ".yaml", ".yml", ".toml", ".py", ".sh"}
 touched = 0
 for target in targets:
     for path in sorted(target.rglob("*")):

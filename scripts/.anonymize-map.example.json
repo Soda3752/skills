@@ -6,12 +6,22 @@
     ["\\bREALKEY\\b", "PROJ"],
     ["fix/realkey-", "fix/proj-"],
     ["OTHERKEY-", "ACME-"],
-    ["\\bOTHERKEY\\b", "ACME"]
+    ["\\bOTHERKEY\\b", "ACME"],
+    ["DEFAULT_TEAM=YourRealTeam", "DEFAULT_TEAM=your-team"],
+    ["your-linear-handle/", "your-name/"],
+    ["Your Real Team", "PROJ team"],
+    ["LINEARKEY-", "PROJ-"],
+    ["\\bLINEARKEY\\b", "PROJ"],
+    ["\\blinearkey-", "proj-"]
   ],
   "secret_patterns": [
     "[a-z0-9-]+\\.atlassian\\.net",
     "\\b(REALKEY|OTHERKEY)-[0-9]+\\b",
     "\\b(REALKEY|OTHERKEY)\\b",
-    "@your-company\\.com"
+    "@your-company\\.com",
+    "\\bLINEARKEY-[0-9]+\\b",
+    "\\bLINEARKEY\\b",
+    "your-linear-handle",
+    "\\bYourRealTeam\\b"
   ]
 }
