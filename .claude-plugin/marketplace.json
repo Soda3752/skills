@@ -11,15 +11,40 @@
     {
       "name": "workflow-init",
       "source": "./plugins/workflow-init",
-      "description": "把新專案接上各種工作流的初始化 SOP：Jira 票券工作流、GitNexus 索引、Obsidian vault + MCP。",
-      "version": "0.1.0",
+      "description": "把新專案接上各種工作流的初始化 SOP：Jira 票券工作流、Linear 票券工作流、GitNexus 索引、Obsidian vault + MCP、Herdr 並行 loop 環境。",
+      "version": "0.2.0",
       "category": "workflow",
       "keywords": [
         "jira",
+        "linear",
         "gitnexus",
         "obsidian",
         "onboarding",
-        "mcp"
+        "mcp",
+        "parallel",
+        "herdr"
+      ]
+    },
+    {
+      "name": "linear-flow",
+      "source": "./plugins/linear-flow",
+      "description": "Linear 票券工作流的日常 skill：多輪訪談釐清需求 → 產出規格書 → 拆成垂直切片議題並推上 Linear；唯讀盤點看板算出哪張票真的可動；無人監督的 goal loop，一輪一張票把看板推到收斂；以及一整組平行開發 skill——用 Claude subagent、Codex 背景 job 或 Herdr 可視 pane 同時做多張票，由 Claude 審碼、rebase、fast-forward 整合並維護看板。與 jira-flow 平行，可同時安裝。",
+      "version": "0.1.0",
+      "category": "workflow",
+      "keywords": [
+        "linear",
+        "spec",
+        "tickets",
+        "grilling",
+        "planning",
+        "inventory",
+        "status",
+        "goal-loop",
+        "unattended",
+        "parallel",
+        "worktree",
+        "codex",
+        "herdr"
       ]
     },
     {

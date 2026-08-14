@@ -10,6 +10,7 @@
 /plugin marketplace add Soda3752/skills
 /plugin install workflow-init@soda-skills
 /plugin install jira-flow@soda-skills
+/plugin install linear-flow@soda-skills
 /plugin install report-tools@soda-skills
 /plugin install kmp-architecture@soda-skills
 /plugin install agent-fleet@soda-skills
@@ -25,15 +26,40 @@
 
 | Plugin | 內容 | 適合誰 |
 | --- | --- | --- |
-| `workflow-init` | `jira-workflow-init`、`gitnexus-init`、`obsidian-init` | 常開新專案、需要固定流程接上外部系統 |
+| `workflow-init` | `jira-workflow-init`、`linear-workflow-init`、`gitnexus-init`、`obsidian-init`、`parallel-loop-init` | 常開新專案、需要固定流程接上外部系統 |
 | `jira-flow` | `grill-to-jira`、`check-jira-status`、`jira-goal-loop` | 已接上 Jira，日常要開票、盤點看板，或想讓 loop 自己把票做完 |
+| `linear-flow` | `grill-to-linear`、`check-linear-status`、`linear-goal-loop`，加上五個平行開發 skill：`parallel-wave`、`codex-wave`、`herdr-codex-wave`、`parallel-loop`、`parallel-ticket` | 同上，但票在 Linear。與 `jira-flow` 平行，可同時裝 |
 | `report-tools` | `pm_report`、`whats-new` | 需要把調查結果或版本差異交付給非工程角色 |
 | `kmp-architecture` | `kmp-mvvm-architecture` | 寫 Kotlin Multiplatform，想把專案統一到同一套 MVVM 架構 |
 | `agent-fleet` | `init_telegram_agent` | 想在一台機器上養一群透過 Telegram 溝通的 Claude Code agent |
 
 `jira-workflow-init` 的預設值放在 `plugins/workflow-init/skills/jira-workflow-init/config/defaults.env`，裡面的站台與 project key 是佔位符，裝完請先改成自己的。文件裡的 `PROJ` / `ACME` 是兩個真實專案的匿名代號。
 
-`jira-goal-loop` 是唯一會**在無人監督下寫程式並 commit** 的 skill，裝了不會自動啟動——要由使用者明確用 `/loop` 帶起來。它讀 `<專案>/.claude/jira-workflow.json` 的 `goalLoop` 區塊決定每輪跑哪些驗證指令，所以那個區塊等於「授權它在本機執行什麼」：**第一次在某個專案跑之前，人眼看過那幾條指令**，不要因為 clone 下來的 repo 附了一份設定就照跑。skill 的「資安紅線」一節寫了完整約束（不 push、不改自己的規則檔、不 commit 憑證、貼進 Jira 前先遮敏感值）。
+`linear-flow` 是 `jira-flow` 的 Linear 版，行為刻意保持平行，但**不是換個名字的複製品**——兩邊資料模型差很多：Linear 沒有 transition id（狀態任意互轉，一律送 state id）、阻塞關係是 `save_issue` 的一級參數但**只能靠 `get_issue` 逐張讀**（`list_issues` 不回傳，成本是 N+1）、`labels` 是整組取代語意（不先讀就送會清光既有標籤）、`includeArchived` 預設 `true`。這些差異寫在 `linear-workflow-init/references/linear-workflow.md` 的地雷表與各 skill 內。預設值在 `plugins/workflow-init/skills/linear-workflow-init/config/defaults.env`，裝完先改 `DEFAULT_TEAM`。
+
+Linear 預設 team 只有 `Backlog / Todo / In Progress / Done / Canceled / Duplicate`，這套工作流還需要 `In Review` / `Blocked` / `API Require`（goal loop 另需 `PENDING`）。**MCP 沒有建立狀態欄的工具**，`linear-workflow-init` 會偵測缺哪幾欄並給手順，但得你自己去 Linear 建。
+
+### 平行開發那五個 skill 差在哪
+
+`linear-flow` 底下除了「開票 / 盤點 / goal loop」三支，還有五支處理**同時做多張票**的 skill。它們的共同骨架都一樣——每張票一個 git worktree，Claude 不寫業務程式碼，只做盤點派工、審碼把關、`rebase` + fast-forward 序列整合、以及全部的 Linear 狀態與註解。差別只在「誰在 worktree 裡實作」和「你看不看得見它在做什麼」：
+
+| Skill | 實作者 | 過程可見性 | 外部依賴 | 什麼時候選它 |
+| --- | --- | --- | --- | --- |
+| `parallel-wave` | Claude subagent | 看不到，只看回收結果 | **無**（只用內建 Agent tool） | 預設選這個。沒裝任何東西也能跑 |
+| `codex-wave` | Codex CLI 背景 job | 看不到 | `codex` CLI + `openai-codex` plugin | 想讓 GPT-5 寫實作，但不需要盯過程 |
+| `herdr-codex-wave` | Codex CLI，跑在 Herdr pane 裡 | **看得見、能 attach、能中途插話** | `HERDR_ENV=1` + `codex` CLI | 想在旁邊看著 Codex 做，隨時能打斷 |
+| `parallel-loop` | Claude，跑在 Herdr pane 裡 | 看得見、能 attach | `HERDR_ENV=1` | 要**無人監督地清空整個看板**，而不是做完指定的一波就停 |
+| `parallel-ticket` | —— | —— | —— | 不由你觸發。它是 `parallel-loop` 派進每個 pane 的單票 SOP（dev → codex 對抗式 review → 驗證 → rebase → 等主 Agent 合併） |
+
+前三個是「**一波**」語意：你指定一批票，做完整合完就停，要不要開下一波由你決定。`parallel-loop` 是「**一直做**」語意，會自己補位下一張票直到看板收斂——所以它跟 goal loop 一樣屬於無人監督寫程式的範疇，同樣的安全前提適用（見下一段）。
+
+`parallel-loop-init` 放在 `workflow-init` 而不是 `linear-flow`，理由跟其他 `*-init` 一致：它是**一次性的環境 doctor**，不是日常工具。它檢查 Herdr session 與 claude integration、兩個 skill 與腳本、主 repo 基準線乾淨、gitnexus 索引、`codex` CLI 實跑白老鼠、Playwright E2E 基建、worktree 根目錄與 port 區段、權限白名單、殘留現場對帳——列出缺口讓你確認後一次補齊。並行環境的失敗多半是靜默的（pane 起來了但搶不到 port、worktree 建了但基準線本來就髒），先跑一輪 doctor 比事後從一堆 pane 裡回推便宜得多。
+
+`herdr-codex-wave` 與 `codex-wave` 有一條共同的分工紅線值得先知道：**Linear 的狀態與整合註解一律由 Claude 寫，不交給 Codex。** Codex 讀得到 Linear MCP（所以票的內容由它自己讀），但讓它同時具備「改程式」和「改看板」兩種權限，出錯時你會分不清看板反映的是真實進度還是 Codex 的樂觀回報。
+
+同一個專案不要同時 import `jira-workflow.md` 與 `linear-workflow.md`——兩份規則對「更新票券」的預設含義都有定義，會直接打架。`linear-workflow-init` 偵測到這種情形會停下來問。
+
+`jira-goal-loop`、`linear-goal-loop` 與 `parallel-loop` 會**在無人監督下寫程式並 commit**，裝了都不會自動啟動——要由使用者明確帶起來（前兩個用 `/loop`，`parallel-loop` 要有 `HERDR_ENV=1`）。兩個 goal loop 各自讀 `<專案>/.claude/jira-workflow.json` 或 `linear-workflow.json` 的 `goalLoop` 區塊決定每輪跑哪些驗證指令，所以那個區塊等於「授權它在本機執行什麼」：**第一次在某個專案跑之前，人眼看過那幾條指令**，不要因為 clone 下來的 repo 附了一份設定就照跑。skill 的「資安紅線」一節寫了完整約束（不 push、不改自己的規則檔、不 commit 憑證、貼進票券前先遮敏感值）。`parallel-loop` 同理，只是設定檔換成 `.claude/parallel-loop.json`，而且它多了一層：pane 裡的 Codex 是 Yolo Mode，跑之前先讓 `parallel-loop-init` 的 doctor 確認權限白名單與 worktree 根目錄是你預期的。
 
 `agent-fleet` 和其他 plugin 性質不同：它是**設計與維運參考，不是裝了就能跑的工具**。它描述的那套 `~/agents/scripts/*`（`new-agent.sh`、`launch-agent.sh`、`seed-telegram-plugin.sh`…）沒有一起發佈，要自己寫。收錄它的價值在於那些踩過才知道的坑——例如手工安裝 plugin 時漏了 `known_marketplaces.json` 的 `installLocation`，Claude 會**完全不載入該 plugin 且不留任何錯誤訊息**。各機器自己的主機事實（agent 名冊、工具絕對路徑、bot handle）放在 `hosts/`，只有 `hosts/EXAMPLE-host.md` 骨架進版控，理由見下方「這個 repo 不收什麼」。
 
@@ -88,9 +114,11 @@ cp scripts/.anonymize-map.example.json scripts/.anonymize-map.json
 
 有兩個 skill 的 repo 版與本機版是**刻意分岔**的，但分岔的性質不同，所以處理方式也不同。
 
-**一、值不同 → 自動匿名化（`jira-workflow-init`）**
+**一、值不同 → 自動匿名化（Jira 側與 Linear 側）**
 
-本機用的是真實 Jira 站台與 project key（不然它日常跑不動），repo 是公開的。檔案結構完全一樣，差別只在幾個字串。
+本機用的是真實 Jira 站台與 project key、真實 Linear team 前綴與 handle（不然它們日常跑不動），repo 是公開的。檔案結構完全一樣，差別只在幾個字串。
+
+涵蓋範圍寫在 `anonymize.sh` 的 `TARGET_DIRS`：Jira 側是 `jira-workflow-init`、`check-jira-status`、`jira-goal-loop`；Linear 側直接指**整個 `plugins/linear-flow` 目錄**加上 `linear-workflow-init`、`parallel-loop-init`。Linear 側之所以整包指定而不逐個 skill 列，是因為票號（`PROJ-93` 這種）散落在每個 skill 的範例、腳本 docstring 與 pane 指令樣板裡——逐個列的話，新增一個 skill 忘了加進表的後果是靜默的：sync 把真實票號搬進來，anonymize 走不到，要等 `check-secrets.sh` 才攔下。
 
 `sync-from-local.sh` 用 `rsync --delete` 單向覆蓋，所以每次同步都會把真值帶回來。`anonymize.sh` 就掛在同步的最後一步自動抹掉，不依賴人記得手動改。它是冪等的，重複跑不會有副作用；如果上游檔案改到讓它找不到插入錨點，它會直接報錯而不是默默跳過。
 
