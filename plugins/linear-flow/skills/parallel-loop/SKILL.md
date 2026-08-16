@@ -308,13 +308,23 @@ Markdown 註解用**真正的換行字元**，不要寫成 `\n` 逸出序列 —
 
 **先加實作紀錄註解，再推狀態。**
 
-註解照 `~/.claude/skills/pm_report` 的七個區塊寫（結論摘要 / 涉及檔案清單 / 實作流程 Mermaid / 各層機制說明 / **驗收條件逐條對照** / 潛在風險與邊界情境 / 交接資訊），素材全部來自結果檔，**照實填不要編**。
+**格式照 `.claude/linear-workflow.md` 的「註解怎麼寫」**——正文給人看（一句話結論 / 做了什麼 / 驗收對照 / 決策取捨 / 風險與未驗證），`<details>` 摺疊區放 YAML 結構資料。素材全部來自結果檔，**照實填不要編**。
 
-兩點與 pm_report 原規範的刻意差異：檔案清單表格與 code block **保留英文原文**（日後要 grep 得到），正文敘述才用中文描述；另外多一個「驗收條件逐條對照」區塊，那是 `linear-workflow.md` 的硬性要求。
+結果檔到註解的映射是機械的，照這張表填，不要重新詮釋：
+
+| 結果檔欄位 | 註解去處 |
+| --- | --- |
+| `summary` | 正文第一句結論 + 「做了什麼」 |
+| `acceptanceCriteria[]` | 正文驗收對照表；YAML 的 `acceptance[]`（通過→`pass`、部分通過→`partial`、未實測→`unverified`、沒做→`skipped`） |
+| `decisions[]` | 正文「決策與取捨」；YAML 的 `decisions[]` |
+| `test.manualItems` + `failures` | 正文「風險與未驗證」；YAML 的 `unverifiable` |
+| `filesTouched` / `headCommit` / `branch` | YAML 的 `files` / `commits` / `branch`（**保留英文原文**，日後要 grep 得到） |
+| `landmines[]` | YAML 的 `pitfalls[]`，原始錯誤訊息照抄 |
+| `review.nonBlockingFindings` | 正文「風險與未驗證」，標明是 codex review 的非阻塞意見 |
 
 - 結果檔的 `test.manualItems` **是空的** → 推 `states.done.id`。
 - `test.manualItems` **非空** → **推 `states.inReview.id` 並加 `labels.manual`**，不是 Done。
-  - 結論摘要第一句必須是「程式碼已進 `<baseBranch>`，以下是還沒驗的部分」，否則使用者會以為票還沒落地、跑去找不存在的分支。
+  - 正文第一句必須是「程式碼已進 `<baseBranch>`，以下是還沒驗的部分」，否則使用者會以為票還沒落地、跑去找不存在的分支。YAML 的 `status` 這時填 `in-review`。
   - **不要推 Blocked。** 這個 team 的 Blocked 是 `unstarted` 型，票落進去 Linear 會把 `startedAt` 清成 null，看板上會長得跟從來沒人碰過一樣 —— 即使它的程式碼已經在 main 上跑了。
 
 **兩種出口都要接著跑第 8.4 步下游解鎖。** 解鎖的判準是程式碼有沒有進 base，不是票在看板上長什麼樣 —— 詳見 8.4。
@@ -328,7 +338,7 @@ Markdown 註解用**真正的換行字元**，不要寫成 `\n` 逸出序列 —
 ### 8.3 blocked / apiRequire
 
 1. `get_issue` 讀現有 labels，送**併集**加上 `labels.unverified`（blocked）或 `api-require`（apiRequire）。
-2. 加七區塊實作紀錄註解。「結論摘要」寫清楚卡在哪、接手的人第一步該做什麼；「潛在風險與邊界情境」**要包含已經排除掉的做法**，別讓下一個人重走死路；「交接資訊」寫明分支與 worktree 已保留供除錯。
+2. 加實作紀錄註解（同樣照「註解怎麼寫」的模板）。這裡的重點與 8.1 不同：**第一句就要講卡在哪、接手的人第一步該做什麼**；「風險與未驗證」**要包含已經排除掉的做法**，別讓下一個人重走死路；YAML 的 `status` 填 `blocked` 或 `api-require`，`pitfalls[]` 填已排除的做法與原始錯誤訊息，並寫明分支與 worktree 已保留供除錯。
 3. 推 `states.block.id` 或 `states.apiRequire.id`。
 
 ### 8.4 下游解鎖（ff merge 成功後必做，Done 與 manual 兩種出口都要跑）

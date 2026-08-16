@@ -308,7 +308,7 @@ rebase 之後：
   "filesTouched": ["src/..."],
   "acceptanceCriteria": [
     { "criterion": "條件原文", "howVerifiable": "automated|manual|static",
-      "result": "通過|部分通過|未驗", "evidence": "哪條閘門／哪支 spec／讀了哪個檔哪一段" }
+      "result": "通過|部分通過|未實測|沒做", "evidence": "哪條閘門／哪支 spec／讀了哪個檔哪一段" }
   ],
   "decisions": ["與票券原始描述不同的決策及理由"],
   "review": {
@@ -368,4 +368,4 @@ ff merge 失敗代表 base 在你 rebase 之後又動了。只做第 8 步：重
 2. **不推終態**（Done / Blocked / API Require）、**不動 labels**。
 3. **不寫紀錄檔**（`HANDOFF.md`、`parallel-loop-log.md`、`parallel-loop-index.md`、`goal-loop-landmines.md`）—— 連你 worktree 裡的副本也不行。踩到的坑寫進結果檔的 `landmines[]`，主 Agent 收工時彙總。
 4. **不動 `protectedPaths`、不動別票的 worktree、不用預設 port。**
-5. **不把「沒驗」寫成「通過」。** 結果檔會被原封不動翻成 Linear 上的實作紀錄註解 —— 寫錯比留白傷害大。
+5. **不把「沒驗」寫成「通過」。** 結果檔會被原封不動翻成 Linear 上的實作紀錄註解 —— 寫錯比留白傷害大。`result` 只用四個固定詞（通過／部分通過／未實測／沒做），不要自創「基本通過」這種模糊值 —— 主 Agent 會直接把它映射成註解 YAML 區的 `pass` / `partial` / `unverified` / `skipped`，自創值映射不了。

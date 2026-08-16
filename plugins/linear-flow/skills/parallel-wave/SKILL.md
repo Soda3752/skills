@@ -144,7 +144,7 @@ git -C "$MAIN" merge --ff-only <branch>
 
 ### 收尾：註解、推 Done、解鎖下游
 
-合併後在票上補一則**整合註解**（agent 寫的是實作紀錄，你寫的是整合紀錄，兩者不同）。整合註解要有：
+合併後在票上補一則**整合註解**（agent 寫的是實作紀錄，你寫的是整合紀錄，兩者不同）。**寫法照 `.claude/linear-workflow.md` 的「註解怎麼寫」**：九條硬規則一體適用，第一句先講程式碼已經進了哪個分支，末尾附 YAML 區（至少 `commits` 與 `verification`）。整合註解的正文要有：
 
 - rebase 前後的 commit hash（rebase 會改寫 hash，只寫一個日後對不上）
 - 在 base 分支上實跑的驗證結果與**測試實際數量**

@@ -1,6 +1,6 @@
 ---
 name: check-jira-status
-description: "盤點當前專案的 Jira 未完成票，算出哪些真的可動（blocker 全清）、哪些卡住、卡在誰，並依「收尾優先 → 解鎖效益 → 優先序」建議下一張該做的票；順帶回報狀態不一致（分支已動工票沒推、票卡在進行中被遺忘、blocker 全清卻還停在 Block、審核中但實作 commit 早就進去了）。這是唯讀盤點，絕不改任何票。Use this whenever the user asks what to work on next, wants a status sweep of the board, asks which tickets are unblocked or actionable, wonders whether the board reflects reality, or is picking up work after time away. Triggers: \"盤點 jira\", \"檢查 jira 狀態\", \"接下來做哪張\", \"下一張票\", \"現在該做什麼\", \"看板現況\", \"哪些票可以動\", \"哪些票卡住了\", \"我做到哪了\", \"jira 狀態對不對\", \"check jira status\", \"what should I work on next\", \"which tickets are unblocked\", \"what's the state of the board\", \"where did I leave off\". 使用者只說「下一步做什麼」而當前專案有 .claude/jira-workflow.json 時也該觸發。"
+description: "盤點當前專案的 Jira 未完成票，算出哪些真的可動（blocker 全清）、哪些卡住、卡在誰，並依「收尾優先 → 解鎖效益 → 優先序」建議下一張該做的票；順帶回報狀態不一致（分支已動工票沒推、票卡在進行中被遺忘、blocker 全清卻還停在 Block、審核中但實作 commit 早就進去了、實作紀錄顯示驗收還沒驗完卻要收尾）。這是唯讀盤點，絕不改任何票。Use this whenever the user asks what to work on next, wants a status sweep of the board, asks which tickets are unblocked or actionable, wonders whether the board reflects reality, or is picking up work after time away. Triggers: \"盤點 jira\", \"檢查 jira 狀態\", \"接下來做哪張\", \"下一張票\", \"現在該做什麼\", \"看板現況\", \"哪些票可以動\", \"哪些票卡住了\", \"我做到哪了\", \"jira 狀態對不對\", \"check jira status\", \"what should I work on next\", \"which tickets are unblocked\", \"what's the state of the board\", \"where did I leave off\". 使用者只說「下一步做什麼」而當前專案有 .claude/jira-workflow.json 時也該觸發。"
 ---
 
 # check-jira-status
@@ -112,6 +112,43 @@ git log --all --format='%h %s' | grep -E "^[0-9a-f]+ [a-z]+(\(|.*\()ACME-10\)"
 
 commit 沒進 `main` 不代表沒完成——功能分支上的工作照樣是完成的工作。判準是「有沒有這張票的實作 commit」，不是「有沒有 merge」。
 
+### 6. 讀實作紀錄的結構資料（限縮範圍，不是每張票都讀）
+
+實作紀錄註解的末尾有一段 YAML 結構資料（格式見 `jira-workflow.md` 的「註解怎麼寫」），記著驗收逐條結果、實際驗證指令、踩過的坑。**讀它能把兩件本來只能靠猜的事變成事實**：
+
+- 「審核中且有 commit」到底該不該推 `done`——`acceptance` 裡若有 `unverified`，就不該推，而且能講出是哪一條卡住。
+- 動工前該避開什麼——上游 blocker 的 `pitfalls` 就是別人已經撞過的牆。
+
+取註解**不需要額外的 API**，`getJiraIssue` 的 `fields` 帶 `comment` 就會回在 `fields.comment.comments`：
+
+```
+getJiraIssue({ cloudId, issueIdOrKey: "<票號>",
+               fields: ["comment"], responseContentFormat: "markdown" })
+```
+
+- **`responseContentFormat` 一定要送 `"markdown"`。** 不送會拿到 ADF 的巢狀 JSON，YAML 區被拆成一堆節點，解析成本高得沒必要。
+- **`fields` 只放 `comment`。** 這張票的其他欄位第 3 步的 JQL 已經拿過了，重複取只是讓回傳變肥。
+
+即使成本比 Linear 版低，**範圍一樣要死守**——註解 body 全回，而實作紀錄本身就不短。只讀這兩類，**合計最多 5 張票**：
+
+| 讀誰 | 為什麼只讀它 |
+| --- | --- |
+| 落在「進行中 / 審核中」的票 | 「早該收尾」判定唯一需要證據的地方。通常只有 1–3 張 |
+| 你要推薦的那張票的**已完成 blocker**，最多 2 張 | 取 `pitfalls` 與 `unblocks`，直接餵給接下來要動工的人 |
+
+超過就停，把沒讀到的標「未讀實作紀錄」，不要為了完整性把整個看板掃一遍。
+
+兩件事別踩：
+
+- **不要假設陣列的最後一則就是實作紀錄。** 之後可能還有別人補的討論。正確做法是找 body 帶 `## 完成：` 或 `給 Agent 的結構資料` 的那則，多則時取時間戳最晚的。
+- **找不到 YAML 區是正常情況，不是錯誤。** 舊票、手寫註解、格式升版前寫的都沒有。這時**退回第 5 步的行為**（只用 git commit 當訊號），照原樣回報。**不要從正文自由文裡猜驗收結果**——猜錯的代價是使用者照著推了一張其實沒驗完的票。
+
+讀到之後，這幾件事併進「待修正」區：狀態推送失敗（YAML 寫 `status: done` 但票不在 done 類別）、下游該解沒解（`unblocks` 列的票還卡著）、驗收沒完就要收尾。
+
+**YAML 與正文打架時，以正文為準並回報這件事本身。** 那代表寫註解的人填錯了一邊，值得使用者知道。
+
+推薦票的 blocker `pitfalls` 直接原文列進輸出的「動工前先看」區，**錯誤訊息不要摘要**。
+
 ## 輸出格式
 
 在對話裡直接輸出，**不要存報告檔**。盤點是高頻動作，每次都寫一份 `.claude/report/` 會很快變成垃圾堆；使用者要留存會自己說。
@@ -128,6 +165,10 @@ commit 沒進 `main` 不代表沒完成——功能分支上的工作照樣是�
 - <若在進行中/審核中：已在「審核中」，屬收尾工作>
 
 次選：<KEY summary> ／ <KEY summary>
+
+### 動工前先看（來自 <KEY> 的實作紀錄）
+- ⚠️ <試過什麼> → <原始錯誤訊息，不要摘要>
+- 可以直接用：<blocker 留下的檔案路徑／接口>
 
 ### 可動（blocker 全清）
 - [狀態] KEY summary  解鎖 N  ←分支對到這張
@@ -147,7 +188,9 @@ commit 沒進 `main` 不代表沒完成——功能分支上的工作照樣是�
 | --- | --- | --- |
 | 分支已動工，票沒推進 | 分支抽到的票號仍在 `new` 類別 | 推 `inProgress` |
 | 可解未解 | blocker 全完成，票卻還在 Block 狀態欄 | 推 `todo` |
-| 早該收尾 | 審核中／進行中，且有實作 commit | 確認驗收後推 `done` |
+| 早該收尾 | 審核中／進行中，且有實作 commit，實作紀錄的 `acceptance` 全 `pass`（或沒有實作紀錄可讀） | 確認驗收後推 `done` |
+| 驗收沒完就要收尾 | 同上，但 `acceptance` 有 `unverified` / `partial` | **先驗那幾條**，列出是哪幾條、`note` 說為什麼驗不到 |
+| 狀態推送失敗 | 實作紀錄寫 `status: done`，票卻不在 done 類別 | 註解已寫、狀態沒推上去，建議補推 |
 | 停滯 | 在進行中／審核中超過兩週沒 `updated` | 確認真實進度，別假設它還在動 |
 | 多張票同時進行中 | 不只一張在 `indeterminate`，且分支只對到其中一張 | 確認其餘是否被遺忘 |
 
@@ -157,4 +200,5 @@ commit 沒進 `main` 不代表沒完成——功能分支上的工作照樣是�
 
 - **回報「沒有待辦事項」之前，先確認查詢真的有回傳票。** 這句話聽起來像好消息，所以最不會被質疑，也最該懷疑。0 張的常見原因是 assignee 條件、project key 打錯、或 `statusCategory` 拼錯，不是真的沒事做。
 - **`PENDING` 之類的自訂狀態要照 `statusCategory` 歸類，不要自己解釋語意。** 站台把它歸在哪一類，就是哪一類。
+- **讀不到實作紀錄的 YAML 區不是壞消息，也不是要你去猜。** 舊票本來就沒有。退回 git commit 那條訊號，照原樣回報，不要從正文自由文推斷驗收過了沒。
 - **不要因為某張票的 summary 看起來最重要就推薦它。** 排序判準是可動性與依賴結構，那是看板上的客觀事實；「看起來重要」是你的猜測，而使用者對優先序的了解永遠比你多。

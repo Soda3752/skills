@@ -176,7 +176,7 @@ git stash pop
 
 ### 收尾
 
-寫**整合註解**（與 pane 的實作紀錄是兩份不同的東西），內含：
+寫**整合註解**（與 pane 的實作紀錄是兩份不同的東西）。**寫法照 `.claude/linear-workflow.md` 的「註解怎麼寫」**：九條硬規則一體適用，第一句先講程式碼已經進了哪個分支，末尾附 YAML 區（至少 `commits` 與 `verification`）。正文內含：
 
 - **rebase 前後兩個 commit hash**。rebase 會改寫 hash，只寫一個日後對不上。沒改寫時就明講「前後同一個 hash，因為期間 base 沒有前進」。
 - 在 base 分支上實跑的驗證結果與**實際斷言數**

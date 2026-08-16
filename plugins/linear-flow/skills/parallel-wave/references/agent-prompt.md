@@ -51,7 +51,7 @@ cd <worktreeRoot>/<dir> && \
    `Co-Authored-By: <co-author>`
 2. **不要 push 遠端、不要合併回 <base>、不要動 <base> 分支。**
 3. Linear MCP：
-   - `save_comment({ issueId: "<TICKET>", body: ... })` 實作紀錄（<commentLanguage> Markdown，用真正換行不要寫 `\n`）：分支名與 commit hash、**驗收條件逐條對照表**（每條寫通過／部分通過／沒做）、測試實際執行數、與票券描述不同的決策及原因、票券沒列但實際遇到的邊界情境、已知限制與未驗證部分。**沒驗的不要寫成通過。**
+   - `save_comment({ issueId: "<TICKET>", body: ... })` 實作紀錄。**先讀 `<主 repo 路徑>/.claude/linear-workflow.md` 的「註解怎麼寫」章節，照那個模板寫**（<commentLanguage> Markdown，用真正換行不要寫 `\n`）。正文給人看：一句話結論、做了什麼、驗收逐條對照表（四個固定詞：通過／部分通過／未實測／沒做）、決策取捨、風險與未驗證；`<details>` 摺疊區放 YAML 結構資料，`verification` 要有測試實際執行數，`pitfalls` 要有你撞過的坑與**原始錯誤訊息**。**沒驗的不要寫成通過。**
    - `save_issue({ id: "<TICKET>", state: "<states.inReview.id>" })` 推 In Review。
    - 不要推 Done（合併後由主 agent 推），不要改其他票。
 
