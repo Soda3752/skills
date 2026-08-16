@@ -308,7 +308,9 @@ Markdown 註解用**真正的換行字元**，不要寫成 `\n` 逸出序列 —
 
 **先加實作紀錄註解，再推狀態。**
 
-**格式照 `.claude/linear-workflow.md` 的「註解怎麼寫」**——正文給人看（一句話結論 / 做了什麼 / 驗收對照 / 決策取捨 / 風險與未驗證），`<details>` 摺疊區放 YAML 結構資料。素材全部來自結果檔，**照實填不要編**。
+**pane 已經自己寫過一則實作紀錄註解了**（含它的思考軌跡），所以你這則是**整合註解**，標題 `## 整合與複查（主控）`——**不要把 pane 那則重講一遍**。你要回答的是「現在能不能信」：程式碼進了哪個分支、你複查改了什麼、還有什麼沒驗。
+
+**格式照 `.claude/linear-workflow.md` 的「註解怎麼寫」**——正文結論在前（狀態一句話 / 你對 pane 判斷的修正 / 複查抓到的真問題 / 仍未驗證），逐條閘門與 hash 演進進 `<details>` 摺疊區。素材全部來自結果檔，**照實填不要編**。
 
 結果檔到註解的映射是機械的，照這張表填，不要重新詮釋：
 
@@ -320,6 +322,7 @@ Markdown 註解用**真正的換行字元**，不要寫成 `\n` 逸出序列 —
 | `test.manualItems` + `failures` | 正文「風險與未驗證」；YAML 的 `unverifiable` |
 | `filesTouched` / `headCommit` / `branch` | YAML 的 `files` / `commits` / `branch`（**保留英文原文**，日後要 grep 得到） |
 | `landmines[]` | YAML 的 `pitfalls[]`，原始錯誤訊息照抄 |
+| `consideredAlternatives[]` | pane 那則註解已經寫過，**你不要重複**；只在你不同意它的取捨時，寫進「我對 pane 判斷的修正」 |
 | `review.nonBlockingFindings` | 正文「風險與未驗證」，標明是 codex review 的非阻塞意見 |
 
 - 結果檔的 `test.manualItems` **是空的** → 推 `states.done.id`。

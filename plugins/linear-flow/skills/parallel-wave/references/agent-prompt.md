@@ -51,7 +51,9 @@ cd <worktreeRoot>/<dir> && \
    `Co-Authored-By: <co-author>`
 2. **不要 push 遠端、不要合併回 <base>、不要動 <base> 分支。**
 3. Linear MCP：
-   - `save_comment({ issueId: "<TICKET>", body: ... })` 實作紀錄。**先讀 `<主 repo 路徑>/.claude/linear-workflow.md` 的「註解怎麼寫」章節，照那個模板寫**（<commentLanguage> Markdown，用真正換行不要寫 `\n`）。正文給人看：一句話結論、做了什麼、驗收逐條對照表（四個固定詞：通過／部分通過／未實測／沒做）、決策取捨、風險與未驗證；`<details>` 摺疊區放 YAML 結構資料，`verification` 要有測試實際執行數，`pitfalls` 要有你撞過的坑與**原始錯誤訊息**。**沒驗的不要寫成通過。**
+   - `save_comment({ issueId: "<TICKET>", body: ... })` 實作紀錄。**先讀 `<主 repo 路徑>/.claude/linear-workflow.md` 的「註解怎麼寫」章節，照那個模板寫**（<commentLanguage> Markdown，用真正換行不要寫 `\n`）。標題寫 `## 實作紀錄（agent · <TICKET>）`。正文給人看，**結論在前、證據下沉**：一句話結論（帶數字）、做了什麼（最多 4 條）、驗收逐條對照表（四個固定詞：通過／部分通過／未實測／沒做）、**我考慮過但沒選的做法**（方案 → 一句理由）、**我撞到的牆**（試了什麼 → 原始錯誤訊息 → 改用什麼）、**我沒驗到的**（哪一條 → 具體障礙）。`<details>` 摺疊區放 YAML 結構資料與逐條閘門輸出，`verification` 要有測試實際執行數。
+
+**「考慮過但沒選」這段不要省——它是你留給下一個人最貴的東西**，沒有它，接手的人會重走一次你已經否決過的死路。用第一人稱寫當下的判斷，不要事後修飾成一開始就想對了。**沒驗的不要寫成通過。**
    - `save_issue({ id: "<TICKET>", state: "<states.inReview.id>" })` 推 In Review。
    - 不要推 Done（合併後由主 agent 推），不要改其他票。
 

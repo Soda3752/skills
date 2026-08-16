@@ -51,7 +51,7 @@ MAIN_REPO="$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
 
 2. **`protectedPaths` 列的路徑一律禁止修改（讀可以）。** 包含 `CLAUDE.md`、`.claude/skills/**`、`.claude/workflows/**`、所有設定檔、`HANDOFF.md`、`spec.md`、`docs/adr/**`、`**/settings.json`。紀錄檔由主 Agent 統一寫 —— **`$MAIN_REPO` 底下的那些檔一律不准動**（`HANDOFF.md` 是 tracked，你的 worktree 裡就有一份，那份也不准動），動了會讓每條分支在檔尾互相衝突。
 
-3. **終態與實作紀錄註解由主 Agent 推。** 你只推 `In Review` 與進度註解（第 5 步）。**不要推 Done / Blocked / API Require、不要動 labels。** 你要傳達的一切都寫進結果檔。
+3. **終態與整合註解由主 Agent 推。** 你只推 `In Review`、進度註解、以及**你自己的實作紀錄註解**（第 5 步）。**不要推 Done / Blocked / API Require、不要動 labels、不要碰其他票。** 給主 Agent 的機器輸入一律走結果檔。
 
 4. **`conflictRules.appendOnlyPaths`（barrel 檔）只准在檔尾追加 export**，不准重排、不准修改既有行。
 
@@ -152,7 +152,19 @@ save_issue({ id: "<TICKET>", state: "<states.inReview.id>" })
 - **codex 通過** —— verdict、修過幾個 commit、非阻塞意見原文
 - **驗證通過** —— 幾條閘門全綠、幾支 E2E spec、有沒有人工項
 
-進度註解是**即時交接**，不要套七大區塊 —— 那是主 Agent 收尾註解的格式。Markdown 用**真正的換行字元**，不要寫 `\n` 逸出序列。
+進度註解是**即時交接**，一兩行就好 —— 完整格式是主 Agent 收尾註解的事。Markdown 用**真正的換行字元**，不要寫 `\n` 逸出序列。
+
+### 第四則：實作紀錄（寫結果檔的同時）
+
+驗證通過、要寫結果檔時，**在票上留一則實作紀錄註解**，標題 `## 實作紀錄（pane · <票號>）`，格式照 `$MAIN_REPO/.claude/linear-workflow.md` 的「註解怎麼寫」。除了結論與驗收對照，**必須有思考軌跡三段**：
+
+- **我考慮過但沒選的做法** —— 方案 → 一句話理由
+- **我撞到的牆** —— 試了什麼 → 原始錯誤訊息 → 改用什麼
+- **我沒驗到的** —— 哪一條 → 具體障礙
+
+**這則與結果檔不重複，它們的讀者不同**：結果檔是給主 Agent 做 ff merge 判斷用的機器輸入，會隨 worktree 一起消失；這則註解是永久紀錄，給日後接手的人看。**「考慮過但沒選」尤其不要省**——下一個人第一個冒出來的念頭，往往正是你已經評估並否決過的方案。
+
+主 Agent 之後會另外寫一則整合註解（它負責回答「現在能不能信」），不會重述你這則。
 
 **每一次 Linear 寫入的成敗都要記進結果檔的 `linearWrites[]`。** 誠實回報失敗 —— 主 Agent 會彙總進 HANDOFF。靜默失敗會讓看板說謊而沒有任何人知道。
 
@@ -311,6 +323,9 @@ rebase 之後：
       "result": "通過|部分通過|未實測|沒做", "evidence": "哪條閘門／哪支 spec／讀了哪個檔哪一段" }
   ],
   "decisions": ["與票券原始描述不同的決策及理由"],
+  "consideredAlternatives": [
+    { "option": "考慮過但沒選的做法", "why": "為什麼不選，一句話" }
+  ],
   "review": {
     "verdict": "codex 的 verdict",
     "passes": 2,

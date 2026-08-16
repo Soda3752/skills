@@ -92,7 +92,13 @@ node_modules、<gitignore 的設定檔清單> 都已複製完成。**不要跑 n
 ## 完成後要做的事
 1. 在 <branch> 上 commit（訊息用繁體中文，conventional commit 格式）。
 2. **不要 push、不要 merge、不要碰 <base>、不要碰別的分支、不要動任何其他票。**
-3. **不要改動 Linear 的票券狀態，也不要在票上留言** —— 那是主控 Agent 的職責。
+3. **不要改動 Linear 的票券狀態、不要動 labels、不要碰其他票** —— 那是主控 Agent 的職責。
+   但**這張票的實作紀錄註解由你自己寫**：`save_comment({ issueId: "<TICKET>", body: ... })`，
+   標題 `## 實作紀錄（codex pane · <TICKET>）`，格式照
+   `<主 repo>/.claude/linear-workflow.md` 的「註解怎麼寫」。結論在前、證據往摺疊區沉，
+   並且要有這三段：**我考慮過但沒選的做法**（方案 → 一句理由）、
+   **我撞到的牆**（試了什麼 → 原始錯誤訊息 → 改用什麼）、**我沒驗到的**（哪一條 → 具體障礙）。
+   worktree 會被移除、RESULT.md 會跟著消失，這則註解才是永久紀錄。
 4. 把結果寫成 RESULT.md 放在 worktree 根目錄（**不要 commit**），繁體中文，包含：
    - commit hash
    - 改了哪些檔案、為什麼

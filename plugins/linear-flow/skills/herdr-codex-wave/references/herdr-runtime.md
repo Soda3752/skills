@@ -177,7 +177,9 @@ trust_level = "trusted"
 1. **有 linear 就讓 pane 自己讀票**（`get_issue`、`list_comments`）。這是本 skill 與 `codex-wave` 最大的差異——那份的前提是「Codex 沒有 Linear MCP、寫不了票」，在這個設定下不成立。
 2. **`[projects.…]` 的 `trust_level` 不涵蓋 worktree 路徑**（worktree 在 repo 外的目錄）。Yolo Mode 下這不影響執行，但若哪天不用 Yolo Mode，要記得 worktree 路徑是未信任的。
 
-即使 pane 讀得到 Linear，**指令裡仍要明令它不准改票券狀態、不准留言**——那是主控 Agent 的職責，讓 pane 碰會讓看板的因果關係變得無法追溯。`config.toml` 裡 `save_comment` 設 `approval_mode = "approve"` 是額外一層保險，但 Yolo Mode 會繞過它，所以指令裡的明令才是真正的防線。
+即使 pane 讀得到 Linear，**指令裡仍要明令它不准改票券狀態、不准動 labels、不准碰其他票**——那是主控 Agent 的職責。`config.toml` 的 `approval_mode` 在 Yolo Mode 下會被繞過，所以指令裡的明令才是真正的防線。
+
+**但「這張票的實作紀錄註解」要讓 pane 自己寫**（`save_comment`），不要由主控轉述。worktree 一移除，pane 的 `RESULT.md` 與 context 就永久消失，而轉述最先流失的永遠是「考慮過但沒選的做法」——那正是下一個接手的人最需要的。分野是**留言權與狀態權分開**：pane 寫這張票的實作紀錄，主控寫狀態與整合註解。可追溯性靠註解標題標明作者（`## 實作紀錄（codex pane · <票號>）`），比單一則轉述更好。
 
 ---
 
