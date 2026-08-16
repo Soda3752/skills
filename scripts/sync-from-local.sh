@@ -1,6 +1,19 @@
 #!/usr/bin/env bash
 # 把本機 ~/.claude/skills 底下的 skill 搬進這個 repo 的對應 plugin。
 #
+# ⚠️ 2026-08-16 起，這條同步線多數情況已經用不到了。
+#
+# 本機的散裝 skill 已全數移除，改成從 marketplace 裝 plugin 到 user scope
+# （skill 實際住在 ~/.claude/plugins/cache/soda-skills/<plugin>/<版本>/skills/）。
+# 所以編輯方向反轉了：
+#
+#   舊：改 ~/.claude/skills/xxx → 跑這支同步回 repo → commit
+#   新：直接改這個 repo → commit push → claude plugin marketplace update soda-skills
+#
+# 這支留著只為一種情況：某台機器上還有散裝版的 skill 要收編進 repo。
+# 對已經走 plugin 的 skill 跑它，SRC 找不到來源，只會印 ❌ 然後跳過——
+# 不會覆蓋 repo，但也什麼都不會做。
+#
 # 用法：
 #   ./scripts/sync-from-local.sh            # 依 SKILL_MAP 全量同步
 #   ./scripts/sync-from-local.sh pm_report  # 只同步指定 skill
