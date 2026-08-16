@@ -163,13 +163,13 @@ save_issue({ id: "<TICKET>", state: "<states.inReview.id>" })
 ### 6.1 先搶名額
 
 ```bash
-bash "$HOME/.claude/skills/parallel-ticket/scripts/stage-lock.sh" acquire review <quotas.review> <TICKET>
+bash "${CLAUDE_PLUGIN_ROOT}/skills/parallel-ticket/scripts/stage-lock.sh" acquire review <quotas.review> <TICKET>
 ```
 
 搶不到會阻塞等待（腳本內建孤兒鎖回收）。**做完一定要釋放**，任何離開路徑都要：
 
 ```bash
-bash "$HOME/.claude/skills/parallel-ticket/scripts/stage-lock.sh" release review <TICKET>
+bash "${CLAUDE_PLUGIN_ROOT}/skills/parallel-ticket/scripts/stage-lock.sh" release review <TICKET>
 ```
 
 ### 6.2 跑 codex
@@ -217,7 +217,7 @@ cd "<你的 worktree>" && node "<codex.companionPath>" <codex.reviewArgs>
 ### 7.1 先搶名額
 
 ```bash
-bash "$HOME/.claude/skills/parallel-ticket/scripts/stage-lock.sh" acquire test <quotas.test> <TICKET>
+bash "${CLAUDE_PLUGIN_ROOT}/skills/parallel-ticket/scripts/stage-lock.sh" acquire test <quotas.test> <TICKET>
 ```
 
 同樣，任何離開路徑都要 `release`。

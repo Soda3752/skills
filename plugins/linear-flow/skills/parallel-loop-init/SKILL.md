@@ -27,7 +27,8 @@ description: "把專案接上『並行 Linear loop』的 Herdr 版：先跑 doct
 ## 做完之後，環境長什麼樣
 
 ```
-~/.claude/skills/                          # skill 在 user level，跨專案共用
+<linear-flow plugin>/skills/               # 裝在 user scope，跨專案共用
+                                           # 路徑用 ${CLAUDE_PLUGIN_ROOT}/skills/ 取得
 ├── parallel-loop/
 │   ├── SKILL.md                           # 主 Agent：派發 + ff merge
 │   └── scripts/wait-any.sh                # 背景喚醒（等價 Promise.race）
@@ -73,12 +74,12 @@ herdr integration install claude # claude kind 已註冊（重跑是冪等的）
 ### 3. 兩個 skill 與腳本就位
 
 ```bash
-ls ~/.claude/skills/parallel-loop/SKILL.md
-ls ~/.claude/skills/parallel-ticket/SKILL.md
-test -x ~/.claude/skills/parallel-loop/scripts/wait-any.sh
-test -x ~/.claude/skills/parallel-ticket/scripts/stage-lock.sh
-bash -n ~/.claude/skills/parallel-loop/scripts/wait-any.sh
-bash -n ~/.claude/skills/parallel-ticket/scripts/stage-lock.sh
+ls ${CLAUDE_PLUGIN_ROOT}/skills/parallel-loop/SKILL.md
+ls ${CLAUDE_PLUGIN_ROOT}/skills/parallel-ticket/SKILL.md
+test -x ${CLAUDE_PLUGIN_ROOT}/skills/parallel-loop/scripts/wait-any.sh
+test -x ${CLAUDE_PLUGIN_ROOT}/skills/parallel-ticket/scripts/stage-lock.sh
+bash -n ${CLAUDE_PLUGIN_ROOT}/skills/parallel-loop/scripts/wait-any.sh
+bash -n ${CLAUDE_PLUGIN_ROOT}/skills/parallel-ticket/scripts/stage-lock.sh
 ```
 
 **缺執行權限就 `chmod +x`**（這是安全的寫入）。skill 檔本身缺了是 blocker，不要自己重寫。
@@ -86,8 +87,8 @@ bash -n ~/.claude/skills/parallel-ticket/scripts/stage-lock.sh
 順手驗一次階段鎖真的能運作（**這一項連 `doctor` 模式也可以跑，它只在 state 目錄下建再刪一個目錄，不消耗任何額度**）：
 
 ```bash
-bash ~/.claude/skills/parallel-ticket/scripts/stage-lock.sh acquire smoke 1 DOCTOR --wait-min 0
-bash ~/.claude/skills/parallel-ticket/scripts/stage-lock.sh release smoke DOCTOR
+bash ${CLAUDE_PLUGIN_ROOT}/skills/parallel-ticket/scripts/stage-lock.sh acquire smoke 1 DOCTOR --wait-min 0
+bash ${CLAUDE_PLUGIN_ROOT}/skills/parallel-ticket/scripts/stage-lock.sh release smoke DOCTOR
 ```
 
 ### 4. 主 repo 基準線乾淨

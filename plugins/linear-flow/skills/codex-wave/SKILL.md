@@ -7,7 +7,7 @@ description: "Claude 指揮、Codex 開發：把 Linear 票拆進獨立 git work
 
 分工的理由很簡單：Codex 是能自己跑建置、讀錯誤、改到綠的完整 agent，適合悶頭把一張票做完；但它**看不到 Linear、不知道你的票券工作流、也不會幫你決定哪些票能同時做**。所以你（Claude）留在上面做判斷與整合，把「寫程式並驗到綠」整包丟給它。
 
-與 `parallel-wave` 的差別只有實作者：那個用 Claude subagent，這個用 Codex。**盤點、審碼、整合的原則兩邊一致**，本檔不重複，需要時讀 `~/.claude/skills/parallel-wave/SKILL.md` 的第 1、2、4 步。本檔專注在 Codex 特有的部分。
+與 `parallel-wave` 的差別只有實作者：那個用 Claude subagent，這個用 Codex。**盤點、審碼、整合的原則兩邊一致**，本檔不重複，需要時讀同 plugin 的 `parallel-wave` skill 的第 1、2、4 步。本檔專注在 Codex 特有的部分。
 
 **若環境有 `HERDR_ENV=1`，先考慮 `herdr-codex-wave`。** 那個版本把 Codex 開在可見、可 attach、可中途插話的 Herdr pane 裡，狀態靠 `herdr agent wait` 而非輪詢，也沒有本檔第 2 步那個「job 狀態以 repo 為單位」的併發疑慮（每個 pane 是獨立程序、獨立 cwd）。本檔的背景 job 版適合「只要結果、不需要看過程」的場合。
 
@@ -160,5 +160,5 @@ Codex 寫不了 Linear，所以這則註解由你寫。格式照 `.claude/linear
 
 - `references/codex-runtime.md` —— 已實查的 CLI 契約、並發關卡細節、已知未知
 - `references/task-prompt.md` —— Codex task prompt 的 XML 區塊寫法與完整範例
-- `~/.claude/skills/parallel-wave/SKILL.md` —— 共用的盤點、前置、整合原則
-- `~/.claude/skills/herdr-codex-wave/SKILL.md` —— 同樣是 Claude 指揮 Codex，但開在可見、可 attach 的 Herdr pane 裡；有 `HERDR_ENV=1` 時優先考慮那個
+- `parallel-wave`（同 plugin）—— 共用的盤點、前置、整合原則
+- `herdr-codex-wave`（同 plugin）—— 同樣是 Claude 指揮 Codex，但開在可見、可 attach 的 Herdr pane 裡；有 `HERDR_ENV=1` 時優先考慮那個

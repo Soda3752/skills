@@ -6,3 +6,6 @@ scripts/.anonymize-map.json
 
 # 內部盤點報告：含代號對照、本機 skill/plugin 清單、絕對路徑
 .claude/
+
+# 本機草稿筆記，不進版控
+docs/*.textbundle/

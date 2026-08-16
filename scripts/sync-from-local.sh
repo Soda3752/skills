@@ -40,6 +40,7 @@ SKILL_MAP=(
   "check-linear-status:linear-flow"
   "linear-goal-loop:linear-flow"
   "herdr-codex-wave:linear-flow"
+  "herdr-claude-wave:linear-flow"
   "codex-wave:linear-flow"
   "parallel-wave:linear-flow"
   "parallel-loop:linear-flow"

@@ -60,6 +60,7 @@
 | `parallel-wave` | 用 Claude subagent 平行做一批票 | 要 |
 | `codex-wave` | 用 Codex 背景 job 平行做一批票 | 要 |
 | `herdr-codex-wave` | 用 Codex pane 平行做一批票，過程看得見 | 要 |
+| `herdr-claude-wave` | 用 Claude Code pane 平行做一批票，過程看得見 | 要 |
 | `parallel-loop` | 用 Claude pane 持續清空看板 | 要 |
 | `parallel-ticket` | 單票實作 SOP | **不要**。由 `parallel-loop` 呼叫。 |
 
@@ -413,7 +414,7 @@ log 絕對不能覆寫。它唯一的價值是：第 8 輪的 Claude 不要重�
 
 ---
 
-# 平行開發五支
+# 平行開發六支
 
 ## 先選一支
 
@@ -422,12 +423,13 @@ log 絕對不能覆寫。它唯一的價值是：第 8 輪的 Claude 不要重�
 | `parallel-wave` | Claude subagent | 看不到，只看結果 | **無** | 預設選這個 |
 | `codex-wave` | Codex CLI 背景 job | 看不到 | `codex` CLI | 想讓 Codex 寫實作，不需要盯過程 |
 | `herdr-codex-wave` | Codex，跑在 Herdr pane | **看得見，能中途插話** | `HERDR_ENV=1` + `codex` CLI | 想在旁邊看著做 |
+| `herdr-claude-wave` | Claude Code，跑在 Herdr pane | **看得見，能中途插話** | `HERDR_ENV=1` | 想看著做，但實作者留 Claude |
 | `parallel-loop` | Claude，跑在 Herdr pane | 看得見 | `HERDR_ENV=1` | 要持續清空整個看板 |
 | `parallel-ticket` | — | — | — | 不由你觸發 |
 
 ## 「波」與「loop」的差別
 
-前三支是**波**：你指定一批票。做完並整合完就停止。要不要開下一波由你決定。
+前四支是**波**：你指定一批票。做完並整合完就停止。要不要開下一波由你決定。
 
 `parallel-loop` 是 **loop**：它自己補位下一張票，直到看板收斂。
 
@@ -595,6 +597,49 @@ pane 是可見的。所以波次大小的上限是「**你還看得過來幾個*
 4. 複製被 gitignore 的本機設定檔。
 
 第 4 件最容易漏。
+
+---
+
+## herdr-claude-wave
+
+### 作用
+
+它與 `herdr-codex-wave` 的骨架相同，但 pane 裡跑的是 **Claude Code**，不是 Codex。
+
+選它而不選 Codex 版的理由：
+
+- 實作者與你共享同一套規範意識。它讀得到 `CLAUDE.md`，不必把專案慣例全部寫進派工指令。
+- 只需要 `HERDR_ENV=1`，不需要 `codex` CLI。
+
+代價是**對抗性比較弱**。同一個模型審自己人寫的碼，看漏的地方容易一致。要天然的對抗性就選 `herdr-codex-wave`。
+
+### 使用方式
+
+```
+用 herdr 派給 claude
+herdr 開 claude pane
+開幾個 claude pane 同時做
+這幾張票丟 claude 平行做
+```
+
+### 需要什麼
+
+- 環境變數 `HERDR_ENV=1`。
+- Herdr 的 claude integration 已安裝。
+
+```bash
+echo "$HERDR_ENV"                    # 必須是 1
+claude --version
+herdr integration status | grep claude
+```
+
+`claude: not installed` 就先跑 `herdr integration install claude`。它寫入 `~/.claude/hooks/herdr-agent-state.sh`，讓 Herdr 認得 pane 的 `working` / `idle` / `blocked` 轉換。**它會改你的 `~/.claude/` 設定，所以會先徵得同意。**
+
+### 與 Codex 版的三個差異
+
+1. **pane 起在 `--permission-mode auto`。** 所以 `blocked` 是常態不是異常——`herdr agent wait` 返回不代表完工，要再看 `herdr agent list` 的實際狀態。
+2. **worktree 裡沒有 `.claude/`。** 權限白名單（`settings.local.json`）不會跟過去，起 pane 時要用 `--add-dir` 指回主 repo。
+3. **審碼要自己補對抗性。** 同模型的盲區一致，該親自讀碼的地方不要因為「它是 Claude」就放鬆。
 
 ---
 

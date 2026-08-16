@@ -18,7 +18,7 @@ description: "Claude 指揮、Codex 在 Herdr pane 裡開發：每張 Linear 票
 | 實作者要用 Claude subagent 而非 Codex | `parallel-wave` |
 | 要無人監督地清空整個看板 | `parallel-loop` / `linear-goal-loop` |
 
-**盤點、審碼、整合的原則與 `parallel-wave` 一致，本檔不重複**——需要時讀 `~/.claude/skills/parallel-wave/SKILL.md` 的第 1、2、4 步。本檔專注在 Herdr + Codex 特有的部分，以及實戰換來的那幾個坑。
+**盤點、審碼、整合的原則與 `parallel-wave` 一致，本檔不重複**——需要時讀同 plugin 的 `parallel-wave` skill 的第 1、2、4 步。本檔專注在 Herdr + Codex 特有的部分，以及實戰換來的那幾個坑。
 
 票券工作流的行為（狀態 id、推票時機、註解規範、下游解鎖）一律遵守專案的 `.claude/linear-workflow.md`，**本 skill 不覆寫它**。
 
@@ -228,4 +228,4 @@ git stash pop
 
 - `references/pane-prompt.md` —— Codex pane 派工指令模板，逐段說明為什麼要有那一段
 - `references/herdr-runtime.md` —— 已實查的 `herdr` CLI 契約與回傳形狀
-- `~/.claude/skills/parallel-wave/SKILL.md` —— 共用的盤點、前置、整合原則
+- `parallel-wave`（同 plugin）—— 共用的盤點、前置、整合原則

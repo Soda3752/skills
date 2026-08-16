@@ -56,9 +56,9 @@ description: "並行清空 Linear 看板的主控 skill：用 Herdr 每票開一
 | 用途 | 路徑 |
 | --- | --- |
 | 結果檔與鎖 | `<mainRepo>/.claude/parallel-loop-state/`（gitignore） |
-| 等待腳本 | `~/.claude/skills/parallel-loop/scripts/wait-any.sh` |
+| 等待腳本 | `${CLAUDE_PLUGIN_ROOT}/skills/parallel-loop/scripts/wait-any.sh` |
 
-**本 skill 與 `parallel-ticket` 都住在 user level（`~/.claude/skills/`），不在專案層。** 這是必要的：實作 pane 的 cwd 是 worktree，而 worktree 沒有 `.claude/`（gitignore 不隨 `git worktree` 過去），專案層 skill 在那裡一律看不到 —— 症狀是 `herdr agent prompt` 送達後 pane 回 `Unknown command: /parallel-ticket`，而 `--wait` 只會回一個看不出原因的 `agent_prompt_stalled`。設定檔（`parallel-loop.json`）與結果檔仍留在專案層，那是對的：規則通用，設定與狀態隨專案。
+**本 skill 與 `parallel-ticket` 必須裝在 user scope（plugin 裝成 user scope，或放 `~/.claude/skills/`），不能放專案層。** 這是必要的：實作 pane 的 cwd 是 worktree，而 worktree 沒有 `.claude/`（gitignore 不隨 `git worktree` 過去），專案層 skill 在那裡一律看不到 —— 症狀是 `herdr agent prompt` 送達後 pane 回 `Unknown command: /parallel-ticket`，而 `--wait` 只會回一個看不出原因的 `agent_prompt_stalled`。設定檔（`parallel-loop.json`）與結果檔仍留在專案層，那是對的：規則通用，設定與狀態隨專案。
 
 `waterline`、`quotas`、`portBase`、`maxAttemptsPerTicket`、`baseBranch`、`worktreeRoot`、`branchTemplate`、`worktreeSeedFiles`、`commands.verify`、`labels`、`conflictRules`、`records` 一律以設定檔為準，**不要在本檔或指令裡寫死**。
 
@@ -200,7 +200,7 @@ herdr agent start <票號小寫> --kind claude --pane <root pane id> \
 herdr agent prompt <票號小寫> "/parallel-ticket <TICKET> --slot <N> --port <PORT>" --wait
 ```
 
-> **絕對不要把任務內容 inline 展開送過去。** 那份任務書有 200 行，含反引號、`$(...)`、中文與路徑插值，穿過 bash 會被靜默吃掉一段，pane 收到殘缺的指令然後照做。規則全部住在 `~/.claude/skills/parallel-ticket/SKILL.md` 裡，走 slash command 完全不經過 shell。
+> **絕對不要把任務內容 inline 展開送過去。** 那份任務書有 200 行，含反引號、`$(...)`、中文與路徑插值，穿過 bash 會被靜默吃掉一段，pane 收到殘缺的指令然後照做。規則全部住在 `parallel-ticket` skill 裡，走 slash command 完全不經過 shell。
 
 `--wait` 只等它開始工作（第一次狀態轉換），不是等它做完。
 
@@ -217,7 +217,7 @@ herdr agent prompt <票號小寫> "/parallel-ticket <TICKET> --slot <N> --port <
 補位到 `waterline` 或無票可派之後，**結束你的 turn**，讓背景腳本等：
 
 ```bash
-bash "$HOME/.claude/skills/parallel-loop/scripts/wait-any.sh" \
+bash "${CLAUDE_PLUGIN_ROOT}/skills/parallel-loop/scripts/wait-any.sh" \
   --worktree-root "<worktreeRoot 絕對路徑>" --timeout-min 45
 ```
 
