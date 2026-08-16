@@ -1,0 +1,16 @@
+{
+  "name": "gitnexus",
+  "description": "GitNexus 程式碼索引的初始化 SOP：註冊 MCP server、建立第一份索引、驗證載入，並可選擇接上 Obsidian vault 骨架同步程式碼知識。",
+  "version": "0.1.0",
+  "author": {
+    "name": "sodalee"
+  },
+  "keywords": [
+    "gitnexus",
+    "indexing",
+    "codebase",
+    "mcp",
+    "onboarding",
+    "obsidian"
+  ]
+}

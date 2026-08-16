@@ -15,12 +15,11 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # 格式：<skill 目錄名>:<plugin 名>
 SKILL_MAP=(
-  # workflow-init
-  "jira-workflow-init:workflow-init"
-  "linear-workflow-init:workflow-init"
-  "obsidian-init:workflow-init"
-  "gitnexus-init:workflow-init"
-  "parallel-loop-init:workflow-init"
+  # gitnexus
+  "gitnexus-init:gitnexus"
+
+  # obsidian
+  "obsidian-init:obsidian"
 
   # report-tools
   "pm_report:report-tools"
@@ -30,10 +29,13 @@ SKILL_MAP=(
   "kmp-mvvm-architecture:kmp-architecture"
 
   # jira-flow
+  "jira-workflow-init:jira-flow"
   "check-jira-status:jira-flow"
   "jira-goal-loop:jira-flow"
 
   # linear-flow
+  "linear-workflow-init:linear-flow"
+  "parallel-loop-init:linear-flow"
   "grill-to-linear:linear-flow"
   "check-linear-status:linear-flow"
   "linear-goal-loop:linear-flow"

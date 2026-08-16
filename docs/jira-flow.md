@@ -2,13 +2,15 @@
 
 # jira-flow
 
-票在 Jira 時的日常工作流。
+票在 Jira 時的初始化與日常工作流。
 
 ## 作用
 
-這個 plugin 有三個 skill。它們涵蓋票券的完整生命週期。
+這個 plugin 有四個 skill：一支一次性的初始化，三支涵蓋票券完整生命週期的日常工具。
 
 ```
+新專案 ──jira-workflow-init──▶ 接上 Jira（站台、project key、transition id）
+
 需求 ──grill-to-jira──▶ 票  ──check-jira-status──▶ 知道下一張做哪個
                             └──jira-goal-loop────▶ 自動做完
 ```
@@ -29,9 +31,9 @@
 使用前先完成兩件事：
 
 1. Atlassian MCP 已授權。
-2. 在專案根目錄執行過 `/jira-workflow-init`。
+2. 在專案根目錄執行過 `/jira-workflow-init`（見下方[jira-workflow-init](#jira-workflow-init)）。
 
-第 2 件產出 `.claude/jira-workflow.json`。**沒有這個檔案，三支 skill 都會直接停止。**
+第 2 件產出 `.claude/jira-workflow.json`。**沒有這個檔案，日常三支都會直接停止。**
 
 它們不會猜站台、project key、transition id。猜錯的後果是票被建到錯的專案，或被推進錯的狀態欄。兩者都要手動善後，而 **Jira MCP 沒有刪票工具**。
 
@@ -39,9 +41,59 @@
 
 | Skill | 作用 |
 | --- | --- |
+| `jira-workflow-init` | 把專案接上 Jira。一次性。 |
 | `grill-to-jira` | 訪談需求 → 規格書 → 建票 |
 | `check-jira-status` | 盤點看板，算出下一張做哪個 |
 | `jira-goal-loop` | 無人監督地把看板做完 |
+
+---
+
+## jira-workflow-init
+
+### 作用
+
+它把當前專案接上 Jira。這是**一次性設定工具**，一個專案執行一次就好。行為與 `linear-flow` 的 `linear-workflow-init` 對齊：先診斷缺什麼、列缺口、問你要不要補，你同意後才一次補齊。任何東西被寫入之前，你先看到完整清單。
+
+### 使用方式
+
+```
+/jira-workflow-init          # 診斷 + 安裝
+/jira-workflow-init doctor   # 只診斷，不寫檔
+```
+
+### 它會檢查九項
+
+比 Linear 版多一項：**transition id 的實查校正**。
+
+Jira 的狀態轉換有圖。你不能任意從一個狀態跳到另一個狀態。每一條轉換有自己的 id，而且**每個 project 的 id 不同**。所以 skill 必須實際抓一張票，查它有哪些 transition，再反推 id。
+
+### 產出
+
+```
+<專案根>/
+├── CLAUDE.local.md              # 多一行 @.claude/jira-workflow.md
+└── .claude/
+    ├── jira-workflow.md         # 工作流規則
+    └── jira-workflow.json       # 站台、project key、transition id
+```
+
+### 安裝後第一件事
+
+預設值放在：
+
+```
+plugins/jira-flow/skills/jira-workflow-init/config/defaults.env
+```
+
+裡面的站台網址與 project key 是**佔位符**。第一次使用前，至少改掉 `JIRA_SITE` 與 `DEFAULT_PROJECT_KEY`。transition id 不用改，skill 會實查校正。
+
+文件中的 `PROJ` 與 `ACME` 是兩個真實專案的匿名代號。
+
+### 零票專案的處理
+
+Jira 需要一張實體票才能查 transition id。專案還沒有任何票時，skill 會請你建一張探測票。**票號會被永久消耗。** 這是 Jira 的限制。
+
+Linear 沒有這個問題。`list_issue_statuses` 不需要任何票就能查。
 
 ---
 

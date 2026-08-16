@@ -15,7 +15,7 @@ description: "盤點當前專案的 Jira 未完成票，算出哪些真的可動
 
 讀專案根的 `.claude/jira-workflow.json`，取 `site`、`projectKey`、`branchPattern`、`conventions.hierarchyLevel1IssueType`。
 
-沒有這個檔案就停下來，告訴使用者這個專案還沒接上 Jira 工作流，可以跑 `/workflow-init:jira-workflow-init`。硬猜 project key 只會盤點到別人的看板。
+沒有這個檔案就停下來，告訴使用者這個專案還沒接上 Jira 工作流，可以跑 `/jira-workflow-init`。硬猜 project key 只會盤點到別人的看板。
 
 ### 2. 抽當前分支的票號
 

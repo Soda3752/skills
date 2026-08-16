@@ -1,0 +1,16 @@
+{
+  "name": "obsidian",
+  "description": "在專案內建立 Obsidian vault 與 project-scope MCP server（@bitbonsai/mcpvault）的初始化 SOP。",
+  "version": "0.1.0",
+  "author": {
+    "name": "sodalee"
+  },
+  "keywords": [
+    "obsidian",
+    "vault",
+    "notes",
+    "mcp",
+    "mcpvault",
+    "onboarding"
+  ]
+}

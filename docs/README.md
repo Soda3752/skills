@@ -28,9 +28,10 @@
 
 | Plugin | 一句話說明 | 說明頁 |
 | --- | --- | --- |
-| `workflow-init` | 把新專案接上外部系統。一次性設定。 | [workflow-init](workflow-init.md) |
-| `linear-flow` | 票在 Linear 時的日常工作流。含平行開發。 | [linear-flow](linear-flow.md) |
-| `jira-flow` | 票在 Jira 時的日常工作流。 | [jira-flow](jira-flow.md) |
+| `linear-flow` | 票在 Linear 時的初始化與日常工作流。含平行開發。 | [linear-flow](linear-flow.md) |
+| `jira-flow` | 票在 Jira 時的初始化與日常工作流。 | [jira-flow](jira-flow.md) |
+| `gitnexus` | 把專案接上 GitNexus 程式碼索引。一次性設定。 | [gitnexus](gitnexus.md) |
+| `obsidian` | 在專案內建 Obsidian vault 與 MCP。一次性設定。 | [obsidian](obsidian.md) |
 | `report-tools` | 產生繁體中文報告。 | [report-tools](report-tools.md) |
 | `kmp-architecture` | Kotlin Multiplatform 的 MVVM 架構規格。 | [kmp-architecture](kmp-architecture.md) |
 | `agent-fleet` | 用 Telegram 管理一群 Claude Code agent 的設計參考。 | [agent-fleet](agent-fleet.md) |
@@ -44,10 +45,10 @@
 依你的情況選。
 
 **情況 1：我用 Linear 管理工作。**
-裝 `workflow-init` 和 `linear-flow`。先執行 `/linear-workflow-init` 設定專案，再開始日常使用。
+裝 `linear-flow`。先執行 `/linear-workflow-init` 設定專案，再開始日常使用。初始化與日常在同一個 plugin 裡。
 
 **情況 2：我用 Jira 管理工作。**
-裝 `workflow-init` 和 `jira-flow`。先執行 `/jira-workflow-init` 設定專案。
+裝 `jira-flow`。先執行 `/jira-workflow-init` 設定專案。
 
 **情況 3：我兩種都用。**
 兩個都裝。但是**同一個專案只能接一種**。原因見 [linear-flow](linear-flow.md#不要在同一個專案接兩套工作流)。
@@ -57,6 +58,12 @@
 
 **情況 5：我寫 Kotlin Multiplatform。**
 裝 `kmp-architecture`。它與票券系統無關。
+
+**情況 6：我要平行開發（`linear-flow` 的 parallel 系列）。**
+除了 `linear-flow`，再裝 `gitnexus`。`parallel-loop-init` 會檢查 gitnexus 索引是否存在。
+
+**情況 7：我要在專案內放 Obsidian 筆記。**
+裝 `obsidian`。它與票券系統無關。裝了 `gitnexus` 的話，`gitnexus-init` 會在你同意時自動委派給它。
 
 ## 安全須知
 

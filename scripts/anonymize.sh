@@ -36,7 +36,7 @@ repo = Path(os.environ["REPO"])
 # 那時已經在工作區了。check-jira-status 的文件通篇用真實票號當實測案例
 # （「實測 X-17 掛著 blocks X-22」這種），不是偶爾出現一兩個。
 TARGET_DIRS = [
-    repo / "plugins/workflow-init/skills/jira-workflow-init",
+    repo / "plugins/jira-flow/skills/jira-workflow-init",
     repo / "plugins/jira-flow/skills/check-jira-status",
     # jira-goal-loop 的 index/log 範例通篇用真實票號當示例，且 commit scope 範例
     # 也帶票號。規則本體無專案值，但範例會踩到。
@@ -45,9 +45,8 @@ TARGET_DIRS = [
     # 範例、腳本 docstring、pane 指令樣板裡，不是偶爾出現一兩個。
     # 這裡直接指整個 plugin 目錄而非逐個 skill——linear-flow 底下每個 skill
     # 都會踩到票號，逐個列的話新增 skill 時漏列是靜默的。
+    # linear-workflow-init 與 parallel-loop-init 已搬進 linear-flow，被這行涵蓋。
     repo / "plugins/linear-flow",
-    repo / "plugins/workflow-init/skills/linear-workflow-init",
-    repo / "plugins/workflow-init/skills/parallel-loop-init",
 ]
 targets = [d for d in TARGET_DIRS if d.is_dir()]
 if not targets:

@@ -20,7 +20,7 @@ description: "把一個還很模糊的需求，經過多輪逐題訪談逼出決
 
 讀專案根的 `.claude/jira-workflow.json`。這是 `jira-workflow-init` 產出的檔案，裡面有 `site`、`projectKey`、`transitions`、`verified`、`apiRequireLabel`、`conventions.epics`。
 
-**檔案不存在就停下來**，告訴使用者先跑 `/workflow-init:jira-workflow-init`，並說明沒有它就不知道要建到哪個站台的哪個 project、Block 欄的 transition id 是多少。硬猜這些值的後果是把票建到錯的專案，或把票推進錯的狀態欄——兩者都得手動善後，而 Jira MCP 沒有刪票工具。
+**檔案不存在就停下來**，告訴使用者先跑 `/jira-workflow-init`，並說明沒有它就不知道要建到哪個站台的哪個 project、Block 欄的 transition id 是多少。硬猜這些值的後果是把票建到錯的專案，或把票推進錯的狀態欄——兩者都得手動善後，而 Jira MCP 沒有刪票工具。
 
 帶 `draft` 呼叫時設定檔可以缺——草稿不碰 Jira。缺了就照常往下走，只在最後提醒一句「要建票得先跑 init」。
 

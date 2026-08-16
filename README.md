@@ -13,9 +13,10 @@
 再安裝你要的 plugin：
 
 ```
-/plugin install workflow-init@soda-skills
 /plugin install linear-flow@soda-skills
 /plugin install jira-flow@soda-skills
+/plugin install gitnexus@soda-skills
+/plugin install obsidian@soda-skills
 /plugin install report-tools@soda-skills
 /plugin install kmp-architecture@soda-skills
 /plugin install agent-fleet@soda-skills
@@ -35,9 +36,10 @@
 
 | Plugin | 說明 | 文件 |
 | --- | --- | --- |
-| `workflow-init` | 把新專案接上外部系統。一次性設定。 | [開啟](docs/workflow-init.md) |
-| `linear-flow` | 票在 Linear 時的日常工作流。含平行開發。 | [開啟](docs/linear-flow.md) |
-| `jira-flow` | 票在 Jira 時的日常工作流。 | [開啟](docs/jira-flow.md) |
+| `linear-flow` | 票在 Linear 時的初始化與日常工作流。含平行開發。 | [開啟](docs/linear-flow.md) |
+| `jira-flow` | 票在 Jira 時的初始化與日常工作流。 | [開啟](docs/jira-flow.md) |
+| `gitnexus` | 把專案接上 GitNexus 程式碼索引。一次性設定。 | [開啟](docs/gitnexus.md) |
+| `obsidian` | 在專案內建 Obsidian vault 與 MCP。一次性設定。 | [開啟](docs/obsidian.md) |
 | `report-tools` | 產生繁體中文報告。 | [開啟](docs/report-tools.md) |
 | `kmp-architecture` | Kotlin Multiplatform 的 MVVM 架構規格。 | [開啟](docs/kmp-architecture.md) |
 | `agent-fleet` | 用 Telegram 管理一群 Claude Code agent 的設計參考。 | [開啟](docs/agent-fleet.md) |

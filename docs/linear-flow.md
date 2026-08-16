@@ -2,20 +2,27 @@
 
 # linear-flow
 
-票在 Linear 時的日常工作流。
+票在 Linear 時的初始化與日常工作流。
 
 ## 作用
 
-這個 plugin 有八個 skill。它們分成兩組。
+這個 plugin 有十個 skill。它們分成三組。
 
-**第一組：日常三支。** 你每天用它們。
+**第一組：初始化兩支。** 每個專案各執行一次，之後就不再需要。
+
+```
+新專案 ──linear-workflow-init──▶ 接上 Linear（team、狀態欄、設定檔）
+                                  └──parallel-loop-init──▶ 平行開發環境就緒
+```
+
+**第二組：日常三支。** 你每天用它們。
 
 ```
 需求 ──grill-to-linear──▶ 票  ──check-linear-status──▶ 知道下一張做哪個
                               └──linear-goal-loop────▶ 自動做完
 ```
 
-**第二組：平行開發五支。** 你要同時做多張票時用它們。
+**第三組：平行開發五支。** 你要同時做多張票時用它們。
 
 五支的骨架完全相同：
 
@@ -37,7 +44,7 @@
 使用前先完成兩件事：
 
 1. Linear MCP 已授權。
-2. 在專案根目錄執行過 `/linear-workflow-init`。
+2. 在專案根目錄執行過 `/linear-workflow-init`（見下方[初始化兩支](#初始化兩支)）。
 
 第 2 件產出 `.claude/linear-workflow.json`。**沒有這個檔案，日常三支會直接停止。** 它們不會猜 team 與狀態 id。猜錯的後果是票被建到錯的 team，或被推進錯的狀態欄。兩者都要手動善後，而 **Linear MCP 沒有刪票工具**。
 
@@ -45,6 +52,8 @@
 
 | Skill | 作用 | 你要不要親自呼叫 |
 | --- | --- | --- |
+| `linear-workflow-init` | 把專案接上 Linear。一次性。 | 要 |
+| `parallel-loop-init` | 檢查平行開發環境。一次性。 | 要 |
 | `grill-to-linear` | 訪談需求 → 規格書 → 建票 | 要 |
 | `check-linear-status` | 盤點看板，算出下一張做哪個 | 要 |
 | `linear-goal-loop` | 無人監督地把看板做完 | 要 |
@@ -53,6 +62,149 @@
 | `herdr-codex-wave` | 用 Codex pane 平行做一批票，過程看得見 | 要 |
 | `parallel-loop` | 用 Claude pane 持續清空看板 | 要 |
 | `parallel-ticket` | 單票實作 SOP | **不要**。由 `parallel-loop` 呼叫。 |
+
+---
+
+# 初始化兩支
+
+這兩支是**一次性設定工具**。你在一個新專案執行一次，之後就不再需要它們。
+
+它們用同一個模式工作：
+
+1. **診斷**（doctor）。它檢查目前缺什麼。
+2. **列缺口**。它列出一張表給你看。
+3. **問你**。它問你要不要補。
+4. **安裝**。你同意後，它一次補齊。
+
+這個模式的好處是：你在任何東西被寫入之前，先看到完整清單。
+
+## linear-workflow-init
+
+### 作用
+
+它把當前專案接上 Linear。完成後，Claude 知道你的票在哪個 team、每個狀態欄的 id 是什麼、什麼時候該推票。
+
+### 使用方式
+
+在專案根目錄輸入：
+
+```
+/linear-workflow-init
+```
+
+只想看現況，不要寫任何檔案時，加上 `doctor`：
+
+```
+/linear-workflow-init doctor
+```
+
+`doctor` 模式**一個檔案都不寫**。你在確認別人的專案時用這個模式。
+
+### 它會檢查八項
+
+1. Linear MCP 是否已授權。
+2. workspace 是否正確。
+3. team 是否存在。
+4. 六個核心狀態欄是否齊全。
+5. `api-require` label 是否存在。
+6. 規則檔是否存在。
+7. 設定檔是否存在。
+8. `CLAUDE.local.md` 是否已 import 規則檔。
+
+### 產出
+
+```
+<專案根>/
+├── CLAUDE.local.md              # 多一行 @.claude/linear-workflow.md
+└── .claude/
+    ├── linear-workflow.md       # 工作流規則。跨專案完全相同。
+    └── linear-workflow.json     # 這個專案的 team 與狀態 id。
+```
+
+規則與值分開存放。規則檔跨專案一字不改。換專案時只換 JSON。所以規則檔日後可以整檔升版，不會弄壞任何專案的設定。
+
+### 你必須自己動手的部分
+
+Linear 的新 team 只有六個預設狀態欄：
+
+```
+Backlog / Todo / In Progress / Done / Canceled / Duplicate
+```
+
+這套工作流另外需要三欄：
+
+```
+In Review / Blocked / API Require
+```
+
+**Linear MCP 沒有建立狀態欄的工具。** 所以缺欄時，你必須自己到 Linear 網頁建立。路徑是 `Settings → Teams → <team> → Workflow`。
+
+skill 會偵測缺哪幾欄，並給你手動步驟。這是最常見的缺口。
+
+### 常見錯誤
+
+**把 Project 當成票的歸屬單位。** Linear 的 Project 是工作分組容器。它對應 Jira 的 Epic。票的歸屬單位是 **Team**。票號前綴由 team 決定。搞混會查到空的看板。
+
+---
+
+## parallel-loop-init
+
+### 作用
+
+它檢查平行開發環境是否可用。平行開發指的是本 plugin 的 [`parallel-loop`](#parallel-loop)。
+
+### 使用方式
+
+```
+/parallel-loop-init          # 診斷 + 補齊
+/parallel-loop-init doctor   # 只診斷，不寫檔
+```
+
+`doctor` 模式下，第 6 項的 Codex 實跑測試**也不會執行**。那項測試會建立暫存檔並消耗 Codex 額度。
+
+### 它會檢查十二項
+
+主要項目：
+
+- Herdr session 與 claude integration 是否就緒。
+- 兩個 skill 與腳本是否安裝在 user 層級。
+- 主 repo 的基準線是否乾淨。
+- gitnexus 索引是否存在。
+- Codex CLI 是否能實際執行（實跑一次測試）。
+- Playwright E2E 基建是否就緒。
+- worktree 根目錄與 port 區段是否設定。
+- 權限白名單是否設定。
+- 是否有上一輪的殘留現場。
+
+### 為什麼要先診斷
+
+平行環境的失敗大多是**靜默的**。例如：
+
+- pane 啟動了，但搶不到 port。
+- worktree 建好了，但基準線本來就是紅的。
+
+這兩種情況都不會報錯。你要等到很久以後才發現。先執行一次 doctor 比事後從一堆 pane 回推便宜。
+
+### 它不做什麼
+
+它**不設定 Linear**。team、狀態欄、label 由 `linear-workflow-init` 管。這個 skill 只確認那份設定存在。設定不存在時，它請你先執行 `linear-workflow-init`。
+
+兩份 Linear 檢查邏輯一旦並存就會漂移。漂移的症狀是靜默推錯狀態欄。
+
+### 產出
+
+```
+~/.claude/skills/                    # skill 在 user 層級，跨專案共用
+├── parallel-loop/
+└── parallel-ticket/
+
+<專案根>/.claude/                     # 設定與狀態留在各專案
+├── parallel-loop.json               # 水位、配額、port、衝突規則
+├── parallel-loop-state/             # 執行期產生的結果檔與鎖
+└── settings.local.json              # 權限白名單
+```
+
+skill 必須放在 user 層級。原因是：實作 pane 的工作目錄是 worktree，而 worktree 沒有 `.claude/` 資料夾。專案層級的 skill 在那裡看不到。
 
 ---
 
@@ -563,4 +715,4 @@ Linear MCP 沒有建立狀態欄的工具。
 | `includeArchived` 預設 `true` | 不指定就會撈到已封存的票。 |
 | 分支名裡的票號是小寫 | Linear 產生 `proj-1`，但 API 認 `PROJ-1`。忘了轉大寫的症狀是「分支對得上卻查不到票」。 |
 
-完整地雷表在 `plugins/workflow-init/skills/linear-workflow-init/references/linear-workflow.md`。
+完整地雷表在 `plugins/linear-flow/skills/linear-workflow-init/references/linear-workflow.md`。
