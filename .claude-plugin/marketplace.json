@@ -122,6 +122,22 @@
         "mcp",
         "plugin"
       ]
+    },
+    {
+      "name": "herdr",
+      "source": "./plugins/herdr",
+      "description": "在 Herdr 終端多工器裡把工作交給另一個 pane 的 agent：開 pane、啟動 Claude 或 Codex、派一份帶脈絡的工作（某支 skill 或純文字任務），確認它真的跑起來就交手，不佔用主 agent。與票券系統無關，單裝就能用。",
+      "version": "0.1.0",
+      "category": "infrastructure",
+      "keywords": [
+        "herdr",
+        "multi-agent",
+        "pane",
+        "delegation",
+        "orchestration",
+        "claude",
+        "codex"
+      ]
     }
   ]
 }

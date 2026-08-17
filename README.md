@@ -20,6 +20,7 @@
 /plugin install report-tools@soda-skills
 /plugin install kmp-architecture@soda-skills
 /plugin install agent-fleet@soda-skills
+/plugin install herdr@soda-skills
 ```
 
 不確定要裝哪些時，看 [Wiki 的「我該裝哪些」](docs/README.md#我該裝哪些)。
@@ -43,6 +44,7 @@
 | `report-tools` | 產生繁體中文報告。 | [開啟](docs/report-tools.md) |
 | `kmp-architecture` | Kotlin Multiplatform 的 MVVM 架構規格。 | [開啟](docs/kmp-architecture.md) |
 | `agent-fleet` | 用 Telegram 管理一群 Claude Code agent 的設計參考。 | [開啟](docs/agent-fleet.md) |
+| `herdr` | 在 Herdr 裡開新 pane，把工作派給另一個 agent。 | [開啟](docs/herdr.md) |
 
 其他文件：
 

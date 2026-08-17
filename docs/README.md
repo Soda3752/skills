@@ -35,6 +35,7 @@
 | `report-tools` | 產生繁體中文報告。 | [report-tools](report-tools.md) |
 | `kmp-architecture` | Kotlin Multiplatform 的 MVVM 架構規格。 | [kmp-architecture](kmp-architecture.md) |
 | `agent-fleet` | 用 Telegram 管理一群 Claude Code agent 的設計參考。 | [agent-fleet](agent-fleet.md) |
+| `herdr` | 在 Herdr 裡開新 pane，把工作派給另一個 agent。 | [herdr](herdr.md) |
 
 其他文件：
 
@@ -64,6 +65,9 @@
 
 **情況 7：我要在專案內放 Obsidian 筆記。**
 裝 `obsidian`。它與票券系統無關。裝了 `gitnexus` 的話，`gitnexus-init` 會在你同意時自動委派給它。
+
+**情況 8：我用 Herdr，想把長工作派給另一個 pane。**
+裝 `herdr`。它與票券系統無關，單裝就能用。你同時用 `linear-flow` 的 wave 系列時，兩個一起裝——用 `herdr` 開 pane 派工，讓那個 agent 去跑 wave。
 
 ## 安全須知
 
