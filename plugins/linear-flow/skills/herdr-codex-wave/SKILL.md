@@ -1,6 +1,6 @@
 ---
 name: herdr-codex-wave
-description: "Claude 指揮、Codex 在 Herdr pane 裡開發：每張 Linear 票一個 workspace + git worktree + 一個 Yolo Mode 的 Codex CLI pane，Claude 只做盤點派工、審碼把關、rebase + fast-forward 整合、以及全部的 Linear 狀態與註解。Codex 讀得到 Linear MCP，所以由它自己讀票；pane 是可見、可 attach、可中斷的，狀態靠 herdr agent wait 而非輪詢畫面。Use this whenever the user wants Codex doing the implementation while Claude orchestrates and they want to watch or interrupt the panes, mentions dispatching tickets to Codex through Herdr, wants several tickets worked in parallel with visible terminals, or asks to resume a wave of Codex panes. Triggers: \"用 herdr 派給 codex\", \"herdr 開 codex\", \"codex yolo mode 跑票\", \"讓 codex 在 pane 裡做\", \"開幾個 codex pane 同時做\", \"這幾張票丟 codex 平行做\", \"claude 指揮 codex 用 herdr\", \"分波派給 codex\", \"開下一波 codex\", \"dispatch these tickets to codex via herdr\", \"spin up codex panes for these issues\", \"have codex implement these in parallel panes\". 需要 HERDR_ENV=1 與 codex CLI。想要背景 job 而非可見 pane 就用 codex-wave；想用 Claude subagent 而非 Codex 就用 parallel-wave。"
+description: "Claude 指揮、Codex 在 Herdr pane 裡開發：每張 Linear 票一個 workspace + git worktree + 一個 Yolo Mode 的 Codex CLI pane，Claude 只做盤點派工、審碼把關、rebase + fast-forward 整合、以及全部的 Linear 狀態與註解。Codex 讀得到 Linear MCP，所以由它自己讀票；pane 是可見、可 attach、可中斷的，狀態靠 herdr agent wait 而非輪詢畫面。完工時 pane 會自動起本地 dev server、把測試頁開在使用者面前，並附一份 STE100 寫法的人工驗收清單。Use this whenever the user wants Codex doing the implementation while Claude orchestrates and they want to watch or interrupt the panes, mentions dispatching tickets to Codex through Herdr, wants several tickets worked in parallel with visible terminals, or asks to resume a wave of Codex panes. Triggers: \"用 herdr 派給 codex\", \"herdr 開 codex\", \"codex yolo mode 跑票\", \"讓 codex 在 pane 裡做\", \"開幾個 codex pane 同時做\", \"這幾張票丟 codex 平行做\", \"claude 指揮 codex 用 herdr\", \"分波派給 codex\", \"開下一波 codex\", \"dispatch these tickets to codex via herdr\", \"spin up codex panes for these issues\", \"have codex implement these in parallel panes\". 需要 HERDR_ENV=1 與 codex CLI。想要背景 job 而非可見 pane 就用 codex-wave；想用 Claude subagent 而非 Codex 就用 parallel-wave。"
 ---
 
 # Herdr Codex Wave —— Claude 指揮、Codex 在 pane 裡開發
@@ -46,7 +46,7 @@ Herdr 版要多想一件事：**pane 是可見的，所以波次大小的上限�
 
 ---
 
-## 2. 開工前置：四件事，第四件最容易漏
+## 2. 開工前置：五件事，第四件最容易漏
 
 **1. 確認 base 分支狀態。** `git status --short`。有未預期改動就問使用者要保留、自己處理、還是由你 stash。**保留是常見選擇，那就在整合時做 stash dance**（見第 5 步）。
 
@@ -78,6 +78,14 @@ done
 
 設定檔清單列了已不存在的檔案時，**回報使用者並提議修正設定**，不要默默跳過。
 
+**5. 決定人工驗收要怎麼開頁，並分配 port。** 讀專案 `.claude/linear-workflow.json` 的 `manualVerification` 區塊（`devCommand`、`baseUrl`、`portBase`、`preflight`、`loginHint`）。沒有那個區塊就從 `package.json` / `Makefile` 推斷，**併進第 1 步那次 AskUserQuestion 一起問**，收工時提議回寫設定檔。
+
+**port 由你分配，不能讓 pane 自己挑**：`portBase + 波內序號`（第一張 5173、第二張 5174⋯）。兩個 pane 撞同一個 port 時，使用者看到的畫面會屬於錯的那張票——而那個畫面「看起來是對的」，是最難察覺的一種錯。分配結果寫進派工指令。
+
+Yolo Mode 的 Codex 沒有權限關卡，`nohup` / `open` / `curl` 直接就能跑，不必像 Claude 版那樣預先補白名單。
+
+專案沒有可開的頁面（純 CLI／library／worker）就整段略過，並在派工指令裡明講「本票無畫面可驗」。細節見 `herdr-claude-wave/references/manual-verification.md`（兩支 skill 共用那一份）。
+
 **接著把整批票推到 `states.inProgress`**，動第一個編輯之前就推。
 
 ---
@@ -108,6 +116,7 @@ herdr agent prompt proj-111 "$(cat <prompt 檔>)"
 - **不准 push、不准 merge、不准動 base 分支、不准改別的票、不准動 Linear 狀態或 labels**——整合與看板是你的職責。**但要求 pane 自己寫這張票的實作紀錄註解**（含思考軌跡三段：考慮過但沒選、撞到的牆、沒驗到的）——worktree 一刪 `RESULT.md` 就沒了，你的轉述必然流失第一人稱的判斷過程。
 - **誠實度要求要具體到痛點**。不要只說「請誠實」，要說「本專案 E2E 已關閉、瀏覽器層零自動守門，`build` 全綠完全不代表畫面對，你沒在瀏覽器裡看過就必須標未驗證」。
 - **要求把可純函式驗證的部分補進既有 `verify:*` 腳本**。自動守門薄的專案，這比 RESULT.md 裡寫「應該沒問題」有價值得多。
+- **要求 pane 完工前起 dev server、開頁、並寫一份人工驗收清單**（`## 人工驗收清單` 段落，STE100 寫法：一句一個動作、祈使句、預期結果必須可觀察、禁用「正常」這類模糊詞）。指令裡要給它：分配到的 port、`devCommand`、`preflight`、`loginHint`、第一個該開的路徑。模板與規則見 `herdr-claude-wave/references/manual-verification.md`。**這是這個工作流唯一的瀏覽器層驗證來源**——不寫的話，這張票的畫面就是零驗證進 base。
 - **要求寫 `RESULT.md` 到 worktree 根目錄且不要 commit**，內含 commit hash、改哪些檔與為什麼、**驗收條件逐條對照（通過／部分通過／未驗證 + 實際證據）**、與票券不同的決策、處理掉的邊界情境、未驗證清單。
 
 ---
@@ -127,6 +136,15 @@ Monitor({
 
 `herdr agent wait` 不帶 `--until` 時會等 idle / done / blocked 任一。**先回報的先整合**，不要等全部——後面的 rebase 一下就好。
 
+**`wait` 返回後，測試頁應該已經開在使用者面前了**（pane 完工前會起 dev server 並 `open`）。沒開就看 `manualVerification.logPath` 查 server 為什麼沒起來。**審碼的同時把 `RESULT.md` 的 `## 人工驗收清單` 原樣搬進對話**——不要摘要成「請驗一下訂單功能」，那等於把 pane 寫好的精確步驟丟掉。一波多票就標明哪個 port 屬於哪張票：
+
+```
+PROJ-111 訂單列表 → http://localhost:5173/orders （4 項，約 3 分鐘）
+PROJ-112 設定頁   → http://localhost:5174/settings（3 項，約 2 分鐘）
+```
+
+使用者回報不符項就 `herdr agent prompt` 回原 pane 補正，**帶上他的原話**——你的轉譯會把症狀的關鍵細節磨掉。**不要為了等驗收而卡住審碼與 rebase**，兩件事平行做；只有 `git worktree remove` 必須等驗收回覆。
+
 pane 若真的卡住（`herdr agent read` 看得出在原地打轉），`herdr agent prompt` 補一句更緊的指令即可，同一個 pane 保留完整脈絡。**同一張票補正兩次仍不達標就停下來問使用者**——多半是票券規格本身有歧義，那是人要決定的事。
 
 ---
@@ -140,6 +158,8 @@ git -C "$WT" log --oneline <base>..HEAD    # 有沒有 commit
 git -C "$WT" status --short                 # 工作區乾淨嗎、有沒有誤 commit
 git -C "$WT" diff --stat <base>...HEAD      # 改了什麼、範圍有沒有超出票券
 ```
+
+**同時確認 `RESULT.md` 裡有 `## 人工驗收清單`**（本票有畫面可驗的話）。沒有就是沒做完，`herdr agent prompt` 要它補——**在關掉 workspace 之前**。
 
 ### 審碼：自我回報是線索，不是證據
 
@@ -181,10 +201,11 @@ git stash pop
 1. **這張票現在是什麼狀態**：已進哪個分支、能不能信。一句話
 2. **我對 pane 判斷的修正**：哪裡它想錯了、我改了什麼、我**補測**了什麼
 3. **複查抓到的真問題**：每條一行（抓到什麼 → 怎麼處置）
-4. **仍未驗證**：**原樣保留 pane 標的未驗證項**，不要因為合併成功就把「未實機驗證」升級成通過
-5. 下游影響（有才寫）
+4. **人工驗收結果**：幾項、使用者實驗幾項、哪幾項不符與怎麼處置、哪幾項他沒驗。使用者選擇不驗就寫「清單已產出、使用者選擇不驗、全 N 項均為未驗證」
+5. **仍未驗證**：**原樣保留 pane 標的未驗證項與使用者沒驗到的清單項**，不要因為合併成功就把「未實機驗證」升級成通過
+6. 下游影響（有才寫）
 
-**這些進 `<details>` 摺疊區，不要放正文**——它們是證據不是結論：rebase 前後兩個 commit hash（rebase 會改寫 hash，只寫一個日後對不上；沒改寫時明講「前後同一個 hash，因為期間 base 沒有前進」）、逐條閘門結果與**實際斷言數**、**被排除的閘門與理由**、盲區評估、複查發現的逐條推導。
+**這些進 `<details>` 摺疊區，不要放正文**——它們是證據不是結論：rebase 前後兩個 commit hash（rebase 會改寫 hash，只寫一個日後對不上；沒改寫時明講「前後同一個 hash，因為期間 base 沒有前進」）、逐條閘門結果與**實際斷言數**、**被排除的閘門與理由**、盲區評估、**人工驗收清單全文**（正文只留結果，步驟是證據）、複查發現的逐條推導。
 
 **你派工時犯的錯不要寫進票**——那是流程問題，進對話或 log。
 
@@ -192,7 +213,9 @@ git stash pop
 
 **解鎖註解是這個工作流的複利引擎，值得寫厚一點。** 下一波的 pane 會被指示去讀它。要寫：現在可以直接用什麼（具體檔案路徑與匯出名稱、可以照抄的既有實作）、**該避開的坑**（你審碼時發現的邊界、效能特性、會誤觸的機制）、以及**上游有哪些未驗證項目**（讓下一張票知道遇到問題時該不該歸因給自己）。
 
-**合併完立刻 `git worktree remove` 並 `herdr workspace close <id>`**，別堆積。
+**收 worktree 的時機被人工驗收綁住了：合併可以立刻做，`git worktree remove` 要等使用者回報驗收結果。** worktree 一刪，dev server 的 cwd 就消失、使用者手上的頁面當場壞掉。順序是：使用者回覆 → `kill $(cat <worktree>/.dev-server.pid)` → `git worktree remove` → `herdr workspace close <id>`。
+
+使用者一直沒回就把 worktree 留著，並在收工回報講明「PROJ-111 的 worktree 與 :5174 還開著，驗完說一聲我來收」。**其餘不需要開頁的票（純 CLI／library）維持原則：合併完立刻收，別堆積。**
 
 ---
 
@@ -203,6 +226,8 @@ git stash pop
 **只有這幾種情況才展開**：真的失敗、發現會影響決策的風險、需要使用者決定的事（要不要 push、要不要刪已合併分支、要不要開下一波）。**已經提醒過且使用者已做決定的事不要再提**——同一段「累積了多少驗證債」講第三次就只是雜訊。
 
 需要使用者親自做的事要單獨點出來（外部主控台設定、憑證、`wrangler secret put` 這類營運動作），因為程式碼這側做不到。
+
+**人工驗收清單也屬於這一類，而且它是每一波都會有的那一項。** 收工回報要講清楚：測試頁開在哪些網址、每張票幾項、還有哪些 worktree 因為等驗收而留著。
 
 發現值得記住的專案特定坑就寫進記憶，下次不用再撞一遍。
 
@@ -224,6 +249,12 @@ git stash pop
 | 把「編譯過」寫成驗收通過 | 視覺與實機行為完全沒驗到，日後回查會被誤導 |
 | 忽略落在被排除閘門盲區的改動 | 那段程式碼零執行期覆蓋，而綠燈會讓人以為它被驗過了 |
 | 收工回報把整合細節在對話裡重述一遍 | 那些該寫進 Linear 註解；對話裡只留結論與待決事項 |
+| **pane 做完就結束，不開測試頁也不給驗收清單** | 瀏覽器層零自動守門，這張票的畫面等於零驗證進 base，而綠燈會讓人以為驗過了 |
+| 讓 pane 自己挑 port | 兩個 pane 撞同一個 port，使用者看到的畫面會屬於錯的那張票，而那個畫面「看起來是對的」 |
+| 驗收還沒回覆就 `git worktree remove` | server 的 cwd 消失，使用者手上的頁面當場壞掉 |
+| 把 pane 寫的清單摘要成「請驗一下 X 功能」 | 精確步驟是清單的全部價值，摘要掉就等於沒寫 |
+| 清單裡寫「確認顯示正常」 | 「正常」是模糊詞；使用者不知道要看哪裡，回報會變成「怪怪的」，pane 補正只能猜 |
+| 使用者跳過驗收就把該項寫成通過 | 紀錄失真比沒驗更危險，未來回查會被誤導 |
 
 ---
 
@@ -231,4 +262,5 @@ git stash pop
 
 - `references/pane-prompt.md` —— Codex pane 派工指令模板，逐段說明為什麼要有那一段
 - `references/herdr-runtime.md` —— 已實查的 `herdr` CLI 契約與回傳形狀
+- `herdr-claude-wave/references/manual-verification.md`（同 plugin）—— 完工開頁、port 分配與 server 生命週期、STE100 寫法的人工驗收清單模板；兩支 skill 共用，差異列在該檔文末
 - `parallel-wave`（同 plugin）—— 共用的盤點、前置、整合原則
