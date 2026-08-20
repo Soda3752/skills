@@ -1,6 +1,6 @@
 ---
 name: create-herdr-wave-agent
-description: 在 Herdr 裡開一個新 pane、啟動一隻編碼 agent（Claude 或 Codex），並派給它一份帶脈絡的工作——通常是要它執行某支 skill（herdr-claude-wave、parallel-loop、goal-loop⋯），也可以是一段純文字任務。確認它真的跑起來就交手，不佔用主 agent。Use this whenever the user wants to spin up another agent in a Herdr pane and hand it work, delegate a skill to a separate pane, or start a wave/loop in its own terminal. Triggers： "開新 pane 叫 claude 跑 X", "用 herdr 派 X 給 claude", "開一隻 agent 執行 X", "叫 codex 在 pane 裡做 X", "派 herdr-claude-wave", "開個 pane 跑 parallel-loop", "spin up an agent to run X", "open a herdr pane and have claude do X", "delegate this skill to another pane"。需要 HERDR_ENV=1。
+description: 在 Herdr 裡開一個新 pane、在裡面起一隻 Claude 當總指揮，並派給它一份帶脈絡的工作——通常是要它執行某支 skill（herdr-codex-wave、herdr-claude-wave、parallel-loop、goal-loop⋯），也可以是一段純文字任務。使用者說的「claude 版本／codex 版本」指的是**要跑哪一支 wave skill**，pane 裡起的一律是 Claude。確認它真的跑起來就交手，不佔用主 agent。Use this whenever the user wants to spin up another agent in a Herdr pane and hand it work, delegate a skill to a separate pane, or start a wave/loop in its own terminal. Triggers： "開新 pane 叫 claude 跑 X", "用 herdr 派 X 給 claude", "開一隻 agent 執行 X", "用 codex 版本", "用 claude 版本", "派 herdr-codex-wave", "派 herdr-claude-wave", "開個 pane 跑 parallel-loop", "spin up an agent to run X", "open a herdr pane and have claude do X", "delegate this skill to another pane"。需要 HERDR_ENV=1。
 ---
 
 # create-herdr-wave-agent
@@ -10,6 +10,22 @@ description: 在 Herdr 裡開一個新 pane、啟動一隻編碼 agent（Claude 
 價值不在「開一個終端機」，而在**交接品質**。同樣一句「跑 herdr-claude-wave」，只丟 skill 名字給對方，它得自己重新摸索專案現況；帶著脈絡丟過去，它第一步就能做對事。這支 skill 的重點在派工那一段的組法。
 
 派完確認它真的動起來就交手。**不要留下來盯**——主 agent 被佔住的話，使用者就不能同時跟你講別的事，而那正是他開第二個 pane 的原因。
+
+## 先解讀參數：「codex 版本」不是 `--kind codex`
+
+使用者在 skill 後面說「claude」或「codex」，講的是**要跑哪一支 wave skill**，不是 pane 裡要起什麼 agent。
+
+| 使用者說 | 派工要它執行 | pane 裡起什麼 |
+| --- | --- | --- |
+| 「用 codex 版本」「派 codex wave」 | `/linear-flow:herdr-codex-wave` | **Claude** |
+| 「用 claude 版本」「派 claude wave」 | `/linear-flow:herdr-claude-wave` | **Claude** |
+| 沒說 | 問一句，或依上下文挑一支 | **Claude** |
+
+原因在那兩支 wave skill 的架構本身：**兩支都是 Claude 當總指揮**，差別只在指揮底下的實作者是 Codex 還是 Claude。而實作 pane 是那支 skill 自己開的，不是這支 skill 的事。
+
+所以「codex 版本」把 pane 裡起成 Codex CLI 是**雙重錯誤**：總指揮的位置被換成不會照 wave 流程走的 agent，而真正該有的 Codex 實作 pane 一個也沒開。
+
+唯一該用 `--kind codex` 的情形是使用者明確講「在 pane 裡起 codex」「用 codex CLI 做這件事」——那是要一隻 Codex 直接幹活，不是要它當指揮。**分不出來就問一句**，這一題猜錯要整個重來。
 
 ## 步驟 0：確認在 Herdr 裡
 
@@ -62,14 +78,26 @@ herdr pane split --current --direction <right|down> --cwd "$PWD" --no-focus
 ## 步驟 3：起 agent
 
 ```bash
-herdr agent start <name> --kind <claude|codex|...> --pane <上一步的 pane id> --timeout 60000
+herdr agent start <name> --kind claude --pane <上一步的 pane id> --timeout 60000
 ```
 
 **名稱要取得有意義且獨一。** 它是之後所有指令的地址，`agent-1` 這種名字在有三隻 agent 的時候完全沒用。用工作內容命名：`wave-lead`、`e2e-fix`、`proj-11`。
 
 格式限制 `[a-z][a-z0-9_-]{0,31}`——小寫開頭，不能有中文、空格、大寫。
 
-kind 用使用者指定的；沒指定就用 `claude`。完整清單跑 `herdr agent` 看。
+**kind 一律 `claude`**，除了「先解讀參數」那一節列的例外（使用者明確要一隻 Codex 直接幹活）。派 wave 的時候不要因為 skill 名字裡有 codex 就跟著改 kind。完整清單跑 `herdr agent` 看。
+
+### 使用者已經自己開好 agent 了
+
+他可能在你動手前就把 pane 開好、Claude 也起好了（常見於前一次派錯之後他自己收拾）。這時**不要再 split、也不要 start**——先看現況：
+
+```bash
+herdr agent list
+```
+
+從清單裡認出那隻：對得上 `cwd`、`agent` 是 `claude`、`agent_status` 是 `idle`。它可能沒有 `name`（使用者手動開的都沒有），那就**直接用 pane id 當派工地址**，`herdr agent prompt <pane id> '...'` 一樣打得到。不要為了「有個名字」而重開一個 pane。
+
+順手確認舊的那隻走了沒。使用者關掉 pane，agent 就從 `agent list` 消失——確認過再往下，兩隻同時動同一批票會互相踩。
 
 `agent start` 會等到 Herdr 確認 agent 起來且可接收輸入才回，預設 30 秒。冷啟動偶爾會超過，所以明確給 `--timeout 60000`。
 
@@ -90,12 +118,16 @@ herdr agent prompt <name> '<派工內容>' --wait --timeout 60000 2>&1 | tail -5
 ```
 執行 /<skill 全名>
 
+<派 wave 時：一句話交代它是指揮，實作者是誰>
+
 脈絡：<專案是什麼、剛發生了什麼、現在的狀態>
 
 <關鍵事實：票號、檔案路徑、依賴關係、已知限制>
 
 請<明確交代它負責什麼、以及什麼不歸它管>
 ```
+
+派 wave 那一句要明講，例如「你是指揮，Codex 是實作者，你不要自己寫實作程式碼」。不寫的話它很可能自己捲起袖子把票做完——skill 裡雖然寫了分工，但一份沒提分工的派工會讓它以為這次是例外。
 
 實例：
 
@@ -177,7 +209,7 @@ herdr agent read <name> --source recent-unwrapped --lines 40
 回報要讓使用者**不必問第二次就知道發生什麼、以及怎麼接手**。四件事：
 
 1. **位置**：workspace / tab / pane id，配一張 ASCII 佈局圖標出新 pane 在哪
-2. **身分**：agent 名稱、kind、版本或模型
+2. **身分**：agent 名稱（或 pane id）、kind、版本或模型，以及它正在跑哪一支 skill
 3. **狀態**：現在是 working / blocked，已經走到哪一步（從畫面讀到的實際進度，不是猜的）
 4. **盯工指令**：可直接複製貼上的三行
 
@@ -191,6 +223,8 @@ herdr agent wait <name> --until blocked done  # 等它卡住或做完
 
 ## 不要做的事
 
+- **不要**把「codex 版本」當成 `--kind codex`。那是在說要跑哪一支 wave skill，pane 裡起的一律是 Claude。
+- **不要**在使用者已經自己開好 pane 與 agent 的時候再開一個。用 `agent list` 認出來，直接拿 pane id 當地址。
 - **不要**在 `HERDR_ENV` 不是 1 的時候硬湊替代方案。
 - **不要**省略 `--cwd "$PWD"`，agent 會在錯的目錄開工。
 - **不要**省略 `--no-focus`，會把使用者的視線搶走。
