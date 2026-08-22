@@ -1,6 +1,6 @@
 ---
 name: herdr-claude-wave
-description: "Claude 指揮、Claude Code 在 Herdr pane 裡開發：每張 Linear 票一個 workspace + git worktree + 一個 Claude Code pane（`--permission-mode auto`），主控 Claude 只做盤點派工、審碼把關、rebase + fast-forward 整合、以及全部的 Linear 狀態與註解。pane 是可見、可 attach、可中斷的，狀態靠 herdr agent wait 而非輪詢畫面。完工時 pane 會自動起本地 dev server、把測試頁開在使用者面前，並附一份 STE100 寫法的人工驗收清單。Use this whenever the user wants Claude Code panes doing the implementation while another Claude orchestrates and they want to watch or interrupt the panes, mentions dispatching tickets to Claude panes through Herdr, wants several tickets worked in parallel with visible terminals, or asks to resume a wave of Claude panes. Triggers: \"用 herdr 派給 claude\", \"herdr 開 claude pane\", \"claude 指揮 claude\", \"讓 claude code 在 pane 裡做\", \"開幾個 claude pane 同時做\", \"這幾張票丟 claude 平行做\", \"分波派給 claude\", \"開下一波 claude\", \"dispatch these tickets to claude panes via herdr\", \"spin up claude code panes for these issues\", \"have claude implement these in parallel panes\". 需要 HERDR_ENV=1。實作者要換成 Codex 就用 herdr-codex-wave；不要可見 pane、只要 Agent tool 就用 parallel-wave；要無人監督清空整個看板就用 parallel-loop。"
+description: "單波審慎版：Claude 指揮、Claude Code 在 Herdr pane 裡開發，一次只跑一波，每波開始前停下來與使用者確認範圍。每張 Linear 票一個 workspace + git worktree + 一個 Claude Code pane（`--permission-mode auto`），主控 Claude 只做盤點派工、審碼把關、rebase + fast-forward 整合、以及全部的 Linear 狀態與註解。pane 是可見、可 attach、可中斷的，狀態靠 herdr agent wait 而非輪詢畫面。完工時 pane 會自動起本地 dev server、把測試頁開在使用者面前，並附一份 STE100 寫法的人工驗收清單。Use this whenever the user wants Claude Code panes doing the implementation while another Claude orchestrates and they want to watch or interrupt the panes, mentions dispatching tickets to Claude panes through Herdr, wants several tickets worked in parallel with visible terminals, or asks to resume a wave of Claude panes. Triggers: \"用 herdr 派給 claude\", \"herdr 開 claude pane\", \"claude 指揮 claude\", \"讓 claude code 在 pane 裡做\", \"開幾個 claude pane 同時做\", \"這幾張票丟 claude 平行做\", \"分波派給 claude\", \"開下一波 claude\", \"dispatch these tickets to claude panes via herdr\", \"spin up claude code panes for these issues\", \"have claude implement these in parallel panes\". 需要 HERDR_ENV=1。要一次授權連跑多波、不逐波問人，並把審碼與整合後驗證外包給常駐 pane，就用 herdr-claude-wave-v2；實作者要換成 Codex 就用 herdr-codex-wave；不要可見 pane、只要 Agent tool 就用 parallel-wave；要無人監督清空整個看板就用 parallel-loop。"
 ---
 
 # Herdr Claude Wave —— Claude 指揮、Claude Code 在 pane 裡開發
@@ -14,6 +14,7 @@ description: "Claude 指揮、Claude Code 在 Herdr pane 裡開發：每張 Line
 | 情境 | 用哪個 |
 | --- | --- |
 | 要看得見、能 attach 進去、能中途插話，實作者是 Claude Code | **本 skill** |
+| 波次計畫已定、票夠多、想一次授權讓它連跑多波不再問人 | `herdr-claude-wave-v2`（自主版，另含常駐 reviewer / verifier） |
 | 實作者要換成 Codex（不同模型、天然的對抗性） | `herdr-codex-wave` |
 | 不需要可見 pane，用內建 Agent tool 就好 | `parallel-wave` |
 | 要無人監督地清空整個看板（自動補位、自動收工） | `parallel-loop` / `linear-goal-loop` |

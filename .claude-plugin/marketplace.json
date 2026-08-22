@@ -12,7 +12,7 @@
       "name": "linear-flow",
       "source": "./plugins/linear-flow",
       "description": "Linear 票券工作流：先用 linear-workflow-init 把專案接上 Linear（狀態欄、label、設定檔），再進入日常——多輪訪談釐清需求 → 產出規格書 → 拆成垂直切片議題並推上 Linear；唯讀盤點看板算出哪張票真的可動；無人監督的 goal loop，一輪一張票把看板推到收斂；以及一整組平行開發 skill——用 Claude subagent、Codex 背景 job 或 Herdr 可視 pane 同時做多張票，由 Claude 審碼、rebase、fast-forward 整合並維護看板。與 jira-flow 平行，可同時安裝。",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "category": "workflow",
       "keywords": [
         "linear",
@@ -27,7 +27,9 @@
         "parallel",
         "worktree",
         "codex",
-        "herdr"
+        "herdr",
+        "standing-panes",
+        "multi-wave"
       ]
     },
     {
