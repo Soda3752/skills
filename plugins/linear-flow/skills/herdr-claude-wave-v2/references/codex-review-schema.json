@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "codex exec review 的結構化輸出",
+  "description": "強制 codex 對每條發現明確標 severity，並強制它為「沒發現問題」的判斷舉證。pane 不能把 blocking 當成 advisory 處理，主控也能直接解析。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["verdict", "findings", "attempted_but_no_counterexample"],
+  "properties": {
+    "verdict": {
+      "type": "string",
+      "enum": ["blocking", "advisory", "clean"],
+      "description": "整體結論。findings 裡有任何一條 blocking 就必須是 blocking；只有 advisory 就是 advisory；兩者皆無才是 clean。"
+    },
+    "findings": {
+      "type": "array",
+      "description": "發現的問題。沒有就給空陣列，但空陣列必須搭配非空的 attempted_but_no_counterexample。",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["severity", "file", "summary", "failing_input"],
+        "properties": {
+          "severity": {
+            "type": "string",
+            "enum": ["blocking", "advisory"],
+            "description": "blocking = 會產生錯誤結果、資料損毀、或讓驗收條件不成立。advisory = 可維護性、邊界情境、風格。判不出來就標 blocking，由人降級。"
+          },
+          "file": {
+            "type": "string",
+            "description": "repo 相對路徑"
+          },
+          "line": {
+            "type": "integer",
+            "description": "1-indexed 行號，指不到具體行就省略"
+          },
+          "summary": {
+            "type": "string",
+            "description": "一句話講清楚缺陷是什麼。不要寫「建議改善」這種沒有內容的句子。"
+          },
+          "failing_input": {
+            "type": "string",
+            "description": "具體的輸入或狀態 → 會產生的錯誤結果。這是這條發現的證據，寫不出來就代表這條不成立，不要放進 findings。"
+          },
+          "suggested_fix": {
+            "type": "string",
+            "description": "選填。怎麼修。"
+          }
+        }
+      }
+    },
+    "attempted_but_no_counterexample": {
+      "type": "array",
+      "description": "你嘗試證偽但舉不出反例的項目。每一條寫「我試了什麼輸入 → 為什麼不成立」。findings 為空時這一欄不得為空——「找不到問題」與「沒有問題」是兩件事，空白不算過。",
+      "items": {
+        "type": "string"
+      }
+    },
+    "scope_check": {
+      "type": "object",
+      "description": "選填。範圍核對：改動有沒有超出這張票該碰的範圍。",
+      "additionalProperties": false,
+      "properties": {
+        "out_of_scope_files": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "assessment": {
+          "type": "string",
+          "description": "判定這些改動是必要還是順手，附依據"
+        }
+      }
+    },
+    "test_evidence": {
+      "type": "object",
+      "description": "選填。測試是不是真的執行過。",
+      "additionalProperties": false,
+      "properties": {
+        "tests_actually_ran": { "type": "boolean" },
+        "note": { "type": "string" }
+      }
+    }
+  }
+}

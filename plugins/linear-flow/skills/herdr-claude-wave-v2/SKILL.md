@@ -1,6 +1,6 @@
 ---
 name: herdr-claude-wave-v2
-description: "herdr-claude-wave 的流水線版：一次取得整份波次計畫與授權，之後連跑多波不再逐波問人；主控在 pane 寫程式的期間做下一波的前置，閘門丟背景不阻塞，diff 分類讀，Linear 更新整波批次做。實作仍是每張 Linear 票一個 workspace + git worktree + 一個 Claude Code pane。不多開任何角色 pane——優化全部落在主控自己的行為上。Use this whenever the user wants a multi-wave Linear push to run with one upfront approval instead of stopping between waves, says the orchestrator idles while panes work or spends too long on integration, asks to speed up a wave-based workflow without adding more agents, or wants the next wave prepared while the current one is still running. Triggers: \"連跑多波\", \"不要每波問我\", \"一次授權跑完\", \"自主推進\", \"主控卡太久\", \"整合太慢\", \"主控在等 pane 的時候很閒\", \"流水線\", \"wave v2\", \"run several waves without asking\", \"autonomous wave\", \"the orchestrator is idle while panes work\". 需要 HERDR_ENV=1。要每波都停下來確認就用 herdr-claude-wave（單波審慎版）；實作者要換成 Codex 用 herdr-codex-wave；不要可見 pane 用 parallel-wave；要完全無人監督清空整個看板用 parallel-loop。"
+description: "herdr-claude-wave 的流水線版：一次取得整份波次計畫與授權，之後連跑多波不再逐波問人；主控在 pane 寫程式的期間做下一波的前置，閘門丟背景不阻塞，diff 分類讀，Linear 更新整波批次做。實作仍是每張 Linear 票一個 workspace + git worktree + 一個 Claude Code pane。加速的部分全部落在主控自己的行為上；品質的部分靠 pane 內每票必跑一輪 codex exec review 提供異質意見——不多開任何角色 pane。Use this whenever the user wants a multi-wave Linear push to run with one upfront approval instead of stopping between waves, says the orchestrator idles while panes work or spends too long on integration, asks to speed up a wave-based workflow without adding more agents, or wants the next wave prepared while the current one is still running. Triggers: \"連跑多波\", \"不要每波問我\", \"一次授權跑完\", \"自主推進\", \"主控卡太久\", \"整合太慢\", \"主控在等 pane 的時候很閒\", \"流水線\", \"codex 審碼\", \"異質複查\", \"wave v2\", \"run several waves without asking\", \"autonomous wave\", \"the orchestrator is idle while panes work\". 需要 HERDR_ENV=1。要每波都停下來確認就用 herdr-claude-wave（單波審慎版）；實作者要換成 Codex 用 herdr-codex-wave；不要可見 pane 用 parallel-wave；要完全無人監督清空整個看板用 parallel-loop。"
 ---
 
 # Herdr Claude Wave v2 —— 流水線版
@@ -29,6 +29,8 @@ description: "herdr-claude-wave 的流水線版：一次取得整份波次計畫
 | 5 | diff 分類讀：搬檔／改名只確認對應，只有改內容的逐行讀 | 回收段的讀碼時間與 context |
 | 6 | Linear 更新整波批次做，不逐票做 | 回收段的重複往返 |
 
+六項之外還有一項**不是為了加速**的改動：**每張票在 pane 內必跑一輪 `codex exec review`**（見第 3 步）。它會讓每張票多花幾分鐘，但它是這套流程唯一的異質意見來源——pane 是 Claude、你也是 Claude，少了它，兩層審查等於同一個模型說了兩次。**拿時間換品質，不要把它算進上面的加速帳。**
+
 **曾經試過多開 reviewer / verifier pane，那是錯的。** 多開的 pane 也是 Claude，它讀 diff 一樣要五分鐘，而主控合併只要兩分鐘——一波只有一兩張票時，主控反而要等它，淨值是變慢。角色拆分只在波次夠大時才回本，而波次夠大時上面六項本來就已經把時間壓下來了。
 
 ## 選這個還是選別的
@@ -53,6 +55,7 @@ description: "herdr-claude-wave 的流水線版：一次取得整份波次計畫
 echo "$HERDR_ENV"                       # 必須是 1，否則整個 skill 不適用
 claude --version
 herdr integration status | grep claude
+codex --version                         # 每張票都要跑 codex review，沒有它整條異質複查失效
 ```
 
 **`claude: not installed` 就先跑 `herdr integration install claude`。** 它讓 Herdr 認得 Claude pane 的 `working` / `idle` / `blocked` 轉換。沒裝的症狀是 `agent_status` 永遠停在 `unknown`，你只能讀畫面猜完工——而 Claude 思考久一點就會被誤判成做完了。
@@ -60,6 +63,10 @@ herdr integration status | grep claude
 **v2 對這件事的依賴比 v1 更重**：波末不問人意味著沒有人在旁邊看畫面，`wait` 不可靠等於整條流程失去唯一的完工訊號。**它會改使用者的 `~/.claude/` 設定，先徵得同意。**
 
 **確認 pane 能不能自己讀票**：Claude Code 的 MCP 來自 user scope（`~/.claude.json`）與專案的 `.mcp.json`。有 linear 就讓 pane 自己 `get_issue` + `list_comments` 讀票，不要把票券描述複製進指令——省你的 context，而且票是唯一權威。
+
+**codex 是必要條件，不是選配。** 這套流程裡 pane 是 Claude、你也是 Claude，兩層審查的判準來自同一個分布——**「它覺得對」與「你覺得對」高度相關**。codex 是唯一的異質意見來源，沒有它，這一波的所有「我判斷沒問題」都只是同一個模型說了兩次。
+
+沒裝 codex 就停下來告訴使用者，不要默默改用「pane 自己再讀一遍」頂替。
 
 ---
 
@@ -137,7 +144,7 @@ done
 
 **5. 決定人工驗收要怎麼開頁，並分配 port。** 讀專案 `.claude/linear-workflow.json` 的 `manualVerification` 區塊。**port 由你分配，不能讓 pane 自己挑**：`portBase + 波內序號`。兩個 pane 撞同一個 port 時，使用者看到的畫面會屬於錯的那張票——而那個畫面「看起來是對的」，是最難察覺的一種錯。
 
-`nohup`、`open`、`curl` 在 `--permission-mode auto` 下可能撞權限提示，先補進 worktree 的 `.claude/settings.local.json` 白名單。專案沒有可開的頁面（純 CLI／library）就整段略過。細節見 `references/manual-verification.md`。
+`nohup`、`open`、`curl`、**`codex`** 在 `--permission-mode auto` 下可能撞權限提示，先補進 worktree 的 `.claude/settings.local.json` 白名單。`codex` 那條漏掉的症狀特別討厭：pane 會在完工的最後一哩卡成 `blocked`，而它已經做完所有事了。專案沒有可開的頁面（純 CLI／library）就整段略過。細節見 `references/manual-verification.md`。
 
 **接著把整批票推到 `states.inProgress`**，動第一個編輯之前就推。
 
@@ -162,10 +169,41 @@ herdr agent prompt proj-111 "$(cat <prompt 檔>)"
 
 ### 指令模板
 
-見 `references/pane-prompt.md`。v1 那些段落全部保留，**v2 要多寫進去的有兩段**：
+見 `references/pane-prompt.md`。v1 那些段落全部保留，**v2 要多寫進去的有三段**：
 
+- **codex 異質複查是必跑的**（見下）——v1 只給地基票，v2 每票都跑
 - **閘門分層**（見下）——不寫的話 pane 會在每次小改動後跑完整測試，一張票就浪費掉十幾分鐘
 - **完工訊號要明確**：`RESULT.md` 寫完落地才算完工。你一收到完工訊號就會立刻開始回收，此時 `RESULT.md` 還沒寫完，你會對著半份文件審碼
+
+### codex 異質複查：每票必跑
+
+pane 在 commit 與完整測試之後、開測試頁之前跑：
+
+```bash
+codex exec review --base "$BASE" \
+  --output-schema <schema 絕對路徑> \
+  --output-last-message /tmp/<TICKET>-codex-review.json \
+  "<證偽 prompt，模板見 references/pane-prompt.md>"
+```
+
+三個旗標各解一個問題：
+
+| 旗標 | 解掉什麼 |
+| --- | --- |
+| `--base` | 自動算出 diff 範圍。**v1 是叫 pane 手動列檔案清單，而漏掉的那個檔多半正是它心虛的那一個** |
+| `--output-schema` | 強制每條發現標 `blocking` / `advisory`，pane 不能把阻斷級當建議級處理。schema 見 `references/codex-review-schema.json` |
+| `--output-last-message` | 報告落地成檔案。pane 不必把全文吞進 context，**而且你讀得到同一個檔——pane 想淡化 codex 的意見也淡化不掉** |
+
+schema 檔要**用絕對路徑指到主 repo 那一份**（worktree 的 `.claude/` 是複本，指過去也行，但主 repo 那份才是唯一真相）。
+
+**規則寫死在派工指令裡，不讓 pane 自由發揮：**
+
+- `blocking` 必修，修完重跑一輪確認消掉
+- `advisory` 不必修，但每條都要在 `RESULT.md` 回應（接受／反駁＋理由／承認但不修＋理由）
+- **最多兩輪**。第二輪還有 blocking 就停下來照實記錄，交給你判斷——無限打磨比留下一條已知問題更浪費
+- **不准降級。** pane 認為 codex 判錯了，修完在 `RESULT.md` 寫反駁理由，由你裁決。自己改判等於這道關卡不存在
+
+codex 預設在 sandbox 裡跑（`--dangerously-bypass-approvals-and-sandbox` 要主動加才會關掉），所以它動不了檔案，天然是唯讀角色。**不要為了讓它「順便修一下」而拿掉 sandbox**——它沒有這張票的脈絡，改出來的東西會在別處壞掉。
 
 ### 閘門分層
 
@@ -269,18 +307,21 @@ git diff --diff-filter=A --name-only <base>...HEAD  # 新增檔：看清單 + �
 
 判斷 rename 是否忠實的方法不是讀 diff，是**抽樣比對**：挑三五個檔案跑 `git show HEAD:<新路徑> | diff - <(git show <base>:<舊路徑>)`，全部無差異就可以相信整批。
 
-### 審碼：四項照做，加四項
+### 審碼：四項照做，加五項
 
-`parallel-wave` 第 4 步那四項照做（看 diff 本身、看 log 實際結尾、確認測試真的執行過並數斷言數、確認 gitignored 檔沒被 commit）。再加四項：
+`parallel-wave` 第 4 步那四項照做（看 diff 本身、看 log 實際結尾、確認測試真的執行過並數斷言數、確認 gitignored 檔沒被 commit）。再加五項：
 
 | # | 加查什麼 | 判準 |
 | --- | --- | --- |
 | 5 | 超出票面範圍的改動是必要還是順手 | 判準不是「有沒有超出」而是「有沒有正當理由」。**驗證方式是逐行比對**——拆檔前後只差一個函式名就是忠實搬移，風險警示可以解除 |
 | 6 | 落在**被排除閘門盲區**的改動 | 本工作流最大的結構性風險。改動落在你第 2 步排除的閘門本該覆蓋的範圍，那段程式碼就是**零執行期覆蓋**。親自讀碼推資料流，並在整合註解裡明講「這段沒有任何一次真實執行」 |
 | 7 | 地基票的未驗證項 | 型別定義、共用演算法、核心 helper 錯了會污染所有下游，而錯誤形式往往是「編譯過、測試過、語意錯」。**pane 標未驗證而下游會直接踩到的，就是你該補測的那一項** |
-| 8 | 對抗來源 | pane 是 Claude、你是 Claude、它的自審也是 Claude，**「它覺得對」與「你覺得對」高度相關**。至少用一個：**Codex 對抗複查**（地基票／演算法票／安全相關，明講「請證明這段是錯的」而不是「請 review」）、**執行證據取代判斷**（不問「這樣對嗎」，問「跑出來是什麼」）、**反向舉證**（讀 diff 時問「給我一組會讓它壞掉的輸入」，舉不出來才算過） |
+| 8 | **codex 報告對帳** | 讀 `/tmp/<TICKET>-codex-review.json` **本身**，不要只看 pane 在 `RESULT.md` 的轉述——那是它挑過的。逐條核：`blocking` 真的修掉了嗎（重跑那輪的結果呢）？`advisory` 的反駁理由站得住嗎？`attempted_but_no_counterexample` 是實質內容還是敷衍？**報告裡有而 `RESULT.md` 沒回應的條目，就是 pane 在避重就輕** |
+| 9 | 你自己的反向舉證 | 讀 diff 時把問題換成「**給我一組會讓它壞掉的輸入**」，舉不出來才算過。**codex 跑過不代表你不用做**——它看不到跨票的一致性，也不知道你排除了哪些閘門 |
 
-**「RESULT.md 說驗收條件全過」的證據力很低**——它的判準和你的判準來自同一個分布。要嘛有執行證據，要嘛有異質來源背書，兩者皆無就標「未驗證」。
+**「RESULT.md 說驗收條件全過」本身沒有證據力**——它的判準和你的判準來自同一個分布。有證據力的只有兩種：**實際跑出來的輸出**，或 **codex 報告的背書**。兩者皆無就標「未驗證」。
+
+反過來也要注意：**codex 回 `clean` 不等於這張票對了**。它看的是 diff，看不到票券的意圖、跨票的一致性、以及你在第 2 步排除的那些閘門所留下的盲區。那三塊仍然只有你能看。
 
 ### 整合：rebase + fast-forward，一張一張來
 
@@ -440,12 +481,18 @@ v1 的反模式全部適用。**以下是 v2 特有的：**
 | context 到 80% 才想交接 | auto-compact 會在半波中途發生，丟掉的正是「哪張已 ff、哪張還沒」這種過程狀態 |
 | 不寫 `wave-log.md` | 使用者不在旁邊，那是他唯一的進度來源；你自己被 compact 之後也靠它復原 |
 | **多開 reviewer / verifier pane 來加速** | 它們也是 Claude，讀 diff 一樣要五分鐘，而你合併只要兩分鐘——小波次時你反而要等它。試過了，是淨損失 |
+| 因為趕時間而跳過 codex review | 它是這條流程**唯一**的異質意見來源。跳過之後 pane 的自審、你的審碼、它的自我回報三層全部同源 |
+| 只讀 pane 在 `RESULT.md` 裡轉述的 codex 意見 | 那是它挑過的。**讀 `/tmp/<TICKET>-codex-review.json` 本身**，報告裡有而 RESULT.md 沒回應的就是避重就輕 |
+| 讓 pane 自己把 codex 的 `blocking` 降成 `advisory` | 那道關卡等於不存在。pane 只能修完再反駁，裁決權在你 |
+| codex 回 `clean` 就當這張票沒問題 | 它看不到票券意圖、跨票一致性、你排除的閘門留下的盲區。那三塊只有你能看 |
+| 為了讓 codex「順便修一下」而拿掉它的 sandbox | 它沒有這張票的脈絡，改出來的東西會在別處壞掉 |
 
 ---
 
 ## 參考檔
 
 - `references/pane-prompt.md` —— 實作 pane 派工指令模板，逐段說明為什麼要有那一段
+- `references/codex-review-schema.json` —— `codex exec review --output-schema` 用的結構化輸出定義
 - `references/manual-verification.md` —— 完工開頁、port 分配與 server 生命週期、STE100 寫法的人工驗收清單模板
 - `references/herdr-runtime.md` —— 已實查的 `herdr` CLI 契約與 Claude pane 特有的旗標
 - `herdr-claude-wave`（同 plugin）—— 單波審慎版，每波停下來確認
