@@ -5,6 +5,8 @@ description: "把專案接上『並行 Linear loop』的 Herdr 版：先跑 doct
 
 # parallel-loop-init
 
+> **⚠️ 主體已移除。** 本 skill 原本是為 `parallel-loop` 做環境 doctor 的，而 `parallel-loop` 已從本 plugin 刪除（連同 `scripts/wait-any.sh`）。因此**檢查 `${CLAUDE_PLUGIN_ROOT}/skills/parallel-loop/` 的那幾項一定會失敗，那是預期的，不是環境缺口**——跳過它們即可。其餘檢查（worktree 根目錄、port 區段、權限白名單、gitnexus 索引、E2E 基建、`.claude/parallel-loop.json`）對 `herdr-claude-wave` / `herdr-codex-wave` / `parallel-wave` 仍然適用。
+
 把當前專案接上**並行 Linear loop（Herdr 版）**。先診斷、列缺口、等使用者確認，再一次補齊。
 
 這是**機械式 SOP**。不要重新談判設計決策——水位、配額、收斂條件那些已經在 `.claude/parallel-loop.json` 裡定案了，使用者要改會自己去改那個檔。唯一該問使用者的是 § 問使用者 那幾件事。

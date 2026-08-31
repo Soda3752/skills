@@ -60,7 +60,7 @@
 | skill | 何時用 | 需要 |
 | --- | --- | --- |
 | `parallel-wave`（本 skill） | 一批獨立票同時做，有人在旁邊看每一步 | 無外部依賴 |
-| `parallel-loop` | 無人監督連續清空看板，要可見可中斷的 pane | `HERDR_ENV=1` |
+| `herdr-claude-wave` / `herdr-codex-wave` | 同一批票，但要可見、可 attach、可中斷的 pane | `HERDR_ENV=1` |
 | `linear-goal-loop` | 無人監督但串行，一次一張做到底 | 無 |
 | `check-linear-status` | 只想知道現況該做哪張，不動手 | 無（唯讀） |
 

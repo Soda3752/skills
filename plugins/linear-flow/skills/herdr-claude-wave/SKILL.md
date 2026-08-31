@@ -1,6 +1,6 @@
 ---
 name: herdr-claude-wave
-description: "單波審慎版：Claude 指揮、Claude Code 在 Herdr pane 裡開發，一次只跑一波，每波開始前停下來與使用者確認範圍。每張 Linear 票一個 workspace + git worktree + 一個 Claude Code pane（`--permission-mode auto`），主控 Claude 只做盤點派工、審碼把關、rebase + fast-forward 整合、以及全部的 Linear 狀態與註解。pane 是可見、可 attach、可中斷的，狀態靠 herdr agent wait 而非輪詢畫面。完工時 pane 會自動起本地 dev server、把測試頁開在使用者面前，並附一份 STE100 寫法的人工驗收清單。Use this whenever the user wants Claude Code panes doing the implementation while another Claude orchestrates and they want to watch or interrupt the panes, mentions dispatching tickets to Claude panes through Herdr, wants several tickets worked in parallel with visible terminals, or asks to resume a wave of Claude panes. Triggers: \"用 herdr 派給 claude\", \"herdr 開 claude pane\", \"claude 指揮 claude\", \"讓 claude code 在 pane 裡做\", \"開幾個 claude pane 同時做\", \"這幾張票丟 claude 平行做\", \"分波派給 claude\", \"開下一波 claude\", \"dispatch these tickets to claude panes via herdr\", \"spin up claude code panes for these issues\", \"have claude implement these in parallel panes\". 需要 HERDR_ENV=1。要一次授權連跑多波、不逐波問人，並把審碼與整合後驗證外包給常駐 pane，就用 herdr-claude-wave-v2；實作者要換成 Codex 就用 herdr-codex-wave；不要可見 pane、只要 Agent tool 就用 parallel-wave；要無人監督清空整個看板就用 parallel-loop。"
+description: "單波審慎版：Claude 指揮、Claude Code 在 Herdr pane 裡開發，一次只跑一波，每波開始前停下來與使用者確認範圍。每張 Linear 票一個 workspace + git worktree + 一個 Claude Code pane（`--permission-mode auto`），主控 Claude 只做盤點派工、審碼把關、rebase + fast-forward 整合、以及全部的 Linear 狀態與註解。pane 是可見、可 attach、可中斷的，狀態靠 herdr agent wait 而非輪詢畫面。完工時 pane 會自動起本地 dev server、把測試頁開在使用者面前，並附一份 STE100 寫法的人工驗收清單。Use this whenever the user wants Claude Code panes doing the implementation while another Claude orchestrates and they want to watch or interrupt the panes, mentions dispatching tickets to Claude panes through Herdr, wants several tickets worked in parallel with visible terminals, or asks to resume a wave of Claude panes. Triggers: \"用 herdr 派給 claude\", \"herdr 開 claude pane\", \"claude 指揮 claude\", \"讓 claude code 在 pane 裡做\", \"開幾個 claude pane 同時做\", \"這幾張票丟 claude 平行做\", \"分波派給 claude\", \"開下一波 claude\", \"dispatch these tickets to claude panes via herdr\", \"spin up claude code panes for these issues\", \"have claude implement these in parallel panes\". 需要 HERDR_ENV=1。實作者要換成 Codex 就用 herdr-codex-wave；不要可見 pane、只要 Agent tool 就用 parallel-wave；要無人監督清空整個看板就用 linear-goal-loop。"
 ---
 
 # Herdr Claude Wave —— Claude 指揮、Claude Code 在 pane 裡開發
@@ -14,10 +14,9 @@ description: "單波審慎版：Claude 指揮、Claude Code 在 Herdr pane 裡�
 | 情境 | 用哪個 |
 | --- | --- |
 | 要看得見、能 attach 進去、能中途插話，實作者是 Claude Code | **本 skill** |
-| 波次計畫已定、票夠多、想一次授權讓它連跑多波不再問人 | `herdr-claude-wave-v2`（自主版，另含常駐 reviewer / verifier） |
 | 實作者要換成 Codex（不同模型、天然的對抗性） | `herdr-codex-wave` |
 | 不需要可見 pane，用內建 Agent tool 就好 | `parallel-wave` |
-| 要無人監督地清空整個看板（自動補位、自動收工） | `parallel-loop` / `linear-goal-loop` |
+| 要無人監督地清空整個看板（自動補位、自動收工） | `linear-goal-loop` |
 
 **盤點、審碼、整合的原則與 `parallel-wave` 一致，本檔不重複**——需要時讀同 plugin 的 `parallel-wave` skill 的第 1、2、4 步。本檔專注在 Herdr + Claude Code pane 特有的部分。
 
@@ -61,7 +60,7 @@ Herdr 版要多想一件事：**pane 是可見的，所以波次大小的上限�
 
 **把這件事寫進記憶**——它是專案級事實，下次不必再測一遍。
 
-**3. 建 worktree。** 分支名照專案慣例（多數專案的 `parallel-loop.json` / 慣例是 `feat/{TICKET}`），worktree 目錄名用簡短票號。
+**3. 建 worktree。** 分支名照專案慣例（多數專案是 `feat/{TICKET}`），worktree 目錄名用簡短票號。
 
 **4. 補齊所有未進版控的檔案——本 skill 這一步比 codex 版更關鍵。** worktree 只帶 tracked 檔案，`.gitignore` 的一律不繼承。清單通常在專案設定的 `worktreeSeedFiles` / `untrackedSetupFiles`，但**別只信那份清單**：
 
@@ -292,9 +291,19 @@ git stash pop
 
 **解鎖註解是這個工作流的複利引擎，值得寫厚一點。** 下一波的 pane 會被指示去讀它。要寫：現在可以直接用什麼（具體檔案路徑與匯出名稱、可以照抄的既有實作）、**該避開的坑**（你審碼時發現的邊界、效能特性、會誤觸的機制）、以及**上游有哪些未驗證項目**（讓下一張票知道遇到問題時該不該歸因給自己）。
 
-**收 worktree 的時機被人工驗收綁住了：合併可以立刻做，`git worktree remove` 要等使用者回報驗收結果。** worktree 一刪，dev server 的 cwd 就消失、使用者手上的頁面當場壞掉。順序是：使用者回覆 → `kill $(cat <worktree>/.dev-server.pid)` → `git worktree remove` → `herdr workspace close <id>`。
+**合併成功就立刻回收分支；只有 worktree 的時機被人工驗收綁住。**
 
-使用者一直沒回就把 worktree 留著，並在收工回報講明「PROJ-111 的 worktree 與 :5174 還開著，驗完說一聲我來收」。**其餘不需要開頁的票（純 CLI／library）維持原則：合併完立刻收，別堆積。**
+ff merge 一成功，先把分支收掉——它跟 dev server 無關，留著只會讓 `git branch` 越積越髒，下一波盤點時分不清哪些是活的：
+
+```bash
+git -C "$MAIN" branch -d <branch>
+```
+
+**用 `-d` 不用 `-D`。** `-d` 在分支尚未完全併入 base 時會拒絕，那正是最後一道保險：拒絕就代表你以為合進去的東西其實沒進去。被拒就**保留分支**、停下來查為什麼，並在收工回報講明哪一條沒收、原因是什麼——不要改用 `-D` 硬刪。
+
+worktree 則要等使用者回報驗收結果，因為 worktree 一刪，dev server 的 cwd 就消失、使用者手上的頁面當場壞掉。順序是：使用者回覆 → `kill $(cat <worktree>/.dev-server.pid)` → `herdr worktree remove --workspace <ws id>`（同時移除 worktree 與 workspace；失敗就退回 `git worktree remove <path>` + `herdr workspace close <id>`）。
+
+使用者一直沒回就把 worktree 留著，並在收工回報講明「PROJ-111 的 worktree 與 :5174 還開著，驗完說一聲我來收」——**分支這時已經收掉了，不在待辦裡。** 其餘不需要開頁的票（純 CLI／library）維持原則：合併完立刻照 `kill server → worktree → branch -d` 一路收乾淨，別堆積。
 
 ---
 
@@ -342,6 +351,8 @@ git stash pop
 | 讓 pane 自己挑 port | 兩個 pane 撞同一個 port，使用者看到的畫面會屬於錯的那張票，而那個畫面「看起來是對的」 |
 | 忘了把 `nohup` / `open` / `curl` 補進 worktree 的白名單 | `--permission-mode auto` 下 pane 會在完工的最後一哩卡成 `blocked` |
 | 驗收還沒回覆就 `git worktree remove` | server 的 cwd 消失，使用者手上的頁面當場壞掉 |
+| 合併成功卻把票分支留著 | 分支會一波一波累積，下次盤點分不清哪條是活的；`branch -d` 是合併流程的一部分，不是善後 |
+| `branch -d` 被拒就改用 `-D` | 被拒代表東西其實沒完全進 base，強刪會讓那份成果永久消失。停下來查，別繞過保險 |
 | 把 pane 寫的清單摘要成「請驗一下 X 功能」 | 精確步驟是清單的全部價值，摘要掉就等於沒寫 |
 | 清單裡寫「確認顯示正常」 | 「正常」是模糊詞；使用者不知道要看哪裡，回報會變成「怪怪的」，pane 補正只能猜 |
 | 使用者跳過驗收就把該項寫成通過 | 紀錄失真比沒驗更危險，未來回查會被誤導 |

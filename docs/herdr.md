@@ -125,7 +125,7 @@ herdr agent get <name>
 | 你說 | 發生什麼 |
 | --- | --- |
 | 開新 pane 叫 Claude 跑 herdr-claude-wave | 開 pane、起 Claude、派 wave |
-| 用 herdr 派 parallel-loop 給 claude | 同上，換一支 skill |
+| 用 herdr 派 linear-goal-loop 給 claude | 同上，換一支 skill |
 | 叫 codex 在 pane 裡把 e2e 跑綠 | 開 pane、起 Codex、派純文字任務 |
 | 開一隻 agent 執行 linear-goal-loop | 開 pane、起 Claude、派 loop |
 
@@ -211,7 +211,6 @@ Herdr 提供的東西是替代不了的：
 
 - `herdr-claude-wave`
 - `herdr-codex-wave`
-- `parallel-loop`
 
 差別在**誰是主體**。
 

@@ -6,7 +6,7 @@
 
 ## 作用
 
-這個 plugin 有十個 skill。它們分成三組。
+這個 plugin 有八個 skill。它們分成三組。
 
 **第一組：初始化兩支。** 每個專案各執行一次，之後就不再需要。
 
@@ -22,9 +22,9 @@
                               └──linear-goal-loop────▶ 自動做完
 ```
 
-**第三組：平行開發五支。** 你要同時做多張票時用它們。
+**第三組：平行開發三支。** 你要同時做多張票時用它們。
 
-五支的骨架完全相同：
+三支的骨架完全相同：
 
 1. 每張票開一個 git worktree。
 2. 每個 worktree 派一個實作者。
@@ -58,11 +58,9 @@
 | `check-linear-status` | 盤點看板，算出下一張做哪個 | 要 |
 | `linear-goal-loop` | 無人監督地把看板做完 | 要 |
 | `parallel-wave` | 用 Claude subagent 平行做一批票 | 要 |
-| `codex-wave` | 用 Codex 背景 job 平行做一批票 | 要 |
 | `herdr-codex-wave` | 用 Codex pane 平行做一批票，過程看得見 | 要 |
 | `herdr-claude-wave` | 用 Claude Code pane 平行做一批票，過程看得見 | 要 |
-| `parallel-loop` | 用 Claude pane 持續清空看板 | 要 |
-| `parallel-ticket` | 單票實作 SOP | **不要**。由 `parallel-loop` 呼叫。 |
+| `parallel-ticket` | 單票實作 SOP（孤兒，見下） | **不要** |
 
 ---
 
@@ -152,7 +150,7 @@ skill 會偵測缺哪幾欄，並給你手動步驟。這是最常見的缺口�
 
 ### 作用
 
-它檢查平行開發環境是否可用。平行開發指的是本 plugin 的 [`parallel-loop`](#parallel-loop)。
+它檢查平行開發環境是否可用。**注意：它是為已移除的 `parallel-loop` 寫的**，產出的 `.claude/parallel-loop.json` 現在只有 `parallel-ticket` 與你自己的流程會讀。
 
 ### 使用方式
 
@@ -196,7 +194,6 @@ skill 會偵測缺哪幾欄，並給你手動步驟。這是最常見的缺口�
 
 ```
 ~/.claude/skills/                    # skill 在 user 層級，跨專案共用
-├── parallel-loop/
 └── parallel-ticket/
 
 <專案根>/.claude/                     # 設定與狀態留在各專案
@@ -414,24 +411,21 @@ log 絕對不能覆寫。它唯一的價值是：第 8 輪的 Claude 不要重�
 
 ---
 
-# 平行開發六支
+# 平行開發三支
 
 ## 先選一支
 
 | Skill | 實作者 | 過程可見性 | 外部依賴 | 何時選它 |
 | --- | --- | --- | --- | --- |
 | `parallel-wave` | Claude subagent | 看不到，只看結果 | **無** | 預設選這個 |
-| `codex-wave` | Codex CLI 背景 job | 看不到 | `codex` CLI | 想讓 Codex 寫實作，不需要盯過程 |
 | `herdr-codex-wave` | Codex，跑在 Herdr pane | **看得見，能中途插話** | `HERDR_ENV=1` + `codex` CLI | 想在旁邊看著做 |
 | `herdr-claude-wave` | Claude Code，跑在 Herdr pane | **看得見，能中途插話** | `HERDR_ENV=1` | 想看著做，但實作者留 Claude |
-| `parallel-loop` | Claude，跑在 Herdr pane | 看得見 | `HERDR_ENV=1` | 要持續清空整個看板 |
-| `parallel-ticket` | — | — | — | 不由你觸發 |
 
 ## 「波」與「loop」的差別
 
-前四支是**波**：你指定一批票。做完並整合完就停止。要不要開下一波由你決定。
+這三支都是**波**：你指定一批票。做完並整合完就停止。要不要開下一波由你決定。
 
-`parallel-loop` 是 **loop**：它自己補位下一張票，直到看板收斂。
+要 **loop**（自己補位下一張票直到看板收斂）就用 `linear-goal-loop`。
 
 波的好處是每一波之間有一個檢查點。你看到完整結果再決定是否繼續。而且下一波的候選票是在「上一波成果已進 base 分支」的前提下重新盤點的，解鎖關係才算得準。
 
@@ -491,54 +485,11 @@ log 絕對不能覆寫。它唯一的價值是：第 8 輪的 Claude 不要重�
 
 ---
 
-## codex-wave
-
-### 作用
-
-它與 `parallel-wave` 幾乎相同。**唯一的差別是實作者換成 Codex CLI。**
-
-盤點、審碼、整合的原則兩邊一致。
-
-### 使用方式
-
-```
-讓 Codex 開發
-用 Codex 做這幾張票
-派給 codex
-用 codex 平行開發
-```
-
-### 需要什麼
-
-- `codex` CLI 已安裝。
-- `openai-codex` plugin 已安裝。
-
-### 三個一定要先知道的差異
-
-**1. Codex 可能寫不了 Linear。開工前先實查。**
-
-讀 `~/.codex/config.toml` 的 `[mcp_servers]` 區塊。
-
-- **沒有 linear**：所有 Linear 操作由 Claude 做。實作紀錄要由 Claude 根據 Codex 的回傳結果**加上實際 diff** 重建。這是最大的失真風險：你很容易把 Codex 說的話當成已驗證的事實寫進票裡。
-- **有 linear**：讓 Codex 自己讀票。這省下 Claude 的 context，而且票是唯一權威。但仍要明令它**不准改票券狀態、不准留言**。
-
-無論哪一種，**推狀態與整合註解一律由 Claude 寫**。
-
-**2. Codex 不知道你的專案慣例。** 它沒讀過 `CLAUDE.md`。它不知道 commit 訊息風格。它不知道哪些驗收條件在本機驗不到。它不知道有哪些既有元件可以重用。該講的全部要寫進派工指令。講漏了它就自己發明一套。
-
-**3. 有 Herdr 時先考慮 `herdr-codex-wave`。** 那個版本的狀態偵測更可靠，也沒有背景 job 的併發疑慮。
-
-### 為什麼看板權限不給 Codex
-
-讓同一個 agent 同時能改程式又能改看板時，出錯後你分不清看板反映的是真實進度，還是它的樂觀回報。
-
----
-
 ## herdr-codex-wave
 
 ### 作用
 
-它與 `codex-wave` 相同，但 Codex 跑在 **Herdr pane** 裡。
+它與 `parallel-wave` 同一套骨架，但實作者是 Codex，而且跑在 **Herdr pane** 裡。
 
 所以你可以：
 
@@ -643,67 +594,11 @@ herdr integration status | grep claude
 
 ---
 
-## parallel-loop
-
-### 作用
-
-它持續清空 Linear 看板。每張票開一個 workspace、一個 worktree、一個 Claude pane。
-
-pane 自己走完 dev → codex review → test → rebase。回報後，主 Agent 序列地 fast-forward 合併進 main，再補位下一張票。
-
-### 使用方式
-
-```
-開始並行 loop
-用 herdr 跑票
-並行清空看板
-接回上一輪的 loop
-```
-
-啟動參數：
-
-```
---hours N     # 跑幾小時後停止補位。預設不限。
-```
-
-到時間只停止**補位**。已經在做的票跑完才收工。硬砍會留下半成品 worktree。
-
-### 需要什麼
-
-- 環境變數 `HERDR_ENV=1`。
-- 先執行過 `/parallel-loop-init`。
-
-### 安全前提
-
-它與 goal loop 一樣，會**在無人監督下寫程式並 commit**。
-
-而且它多一層風險：**pane 裡的 Codex 是 Yolo Mode**。啟動前先用 `/parallel-loop-init` 的 doctor 確認權限白名單與 worktree 根目錄是你預期的。
-
-設定檔是 `.claude/parallel-loop.json`。
-
-### 主 Agent 的邊界
-
-主 Agent 只做三件事：
-
-1. 派發票給 pane。
-2. fast-forward 合併。**這是它唯一碰 main 的時刻。**
-3. 推終態。**只有它能推。**
-
-pane 不碰 main。pane 不推終態。
-
-### 舊版 Workflow 不要同時執行
-
-`.claude/workflows/parallel-linear-loop.mjs` 是同一套流程的另一個實作。兩套共用同一份 `.claude/parallel-loop.json`。
-
-**不要同時執行。** 它們會搶同一批 worktree 與 port。
-
----
-
 ## parallel-ticket
 
 ### 作用
 
-它是單票實作 SOP。`parallel-loop` 把它送進每個 pane。
+它是單票實作 SOP。**它的主體 `parallel-loop` 已從本 plugin 移除，所以現在沒有東西會自動呼叫它。** 檔案留著供參考或自行派工用。
 
 流程：
 
@@ -715,9 +610,7 @@ pane 不碰 main。pane 不推終態。
 
 ### 使用方式
 
-**一般不由你觸發。** 它由 `parallel-loop` 主 Agent 透過 `herdr agent prompt` 呼叫。
-
-主 Agent 的 fast-forward 失敗時，你可能會看到它被要求重新 rebase。
+**一般不由你觸發。** 它原本由 `parallel-loop` 主 Agent 透過 `herdr agent prompt` 呼叫；那支已移除，現在只有你手動送進 pane 時才會用到。
 
 ### 它的邊界
 

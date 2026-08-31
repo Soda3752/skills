@@ -1,6 +1,6 @@
 ---
 name: create-herdr-wave-agent
-description: 在 Herdr 裡開一個新 pane、在裡面起一隻 Claude 當總指揮，並派給它一份帶脈絡的工作——通常是要它執行某支 skill（herdr-codex-wave、herdr-claude-wave、parallel-loop、goal-loop⋯），也可以是一段純文字任務。使用者說的「claude 版本／codex 版本」指的是**要跑哪一支 wave skill**，pane 裡起的一律是 Claude。確認它真的跑起來就交手，不佔用主 agent。Use this whenever the user wants to spin up another agent in a Herdr pane and hand it work, delegate a skill to a separate pane, or start a wave/loop in its own terminal. Triggers： "開新 pane 叫 claude 跑 X", "用 herdr 派 X 給 claude", "開一隻 agent 執行 X", "用 codex 版本", "用 claude 版本", "派 herdr-codex-wave", "派 herdr-claude-wave", "開個 pane 跑 parallel-loop", "spin up an agent to run X", "open a herdr pane and have claude do X", "delegate this skill to another pane"。需要 HERDR_ENV=1。
+description: 在 Herdr 裡開一個新 pane、在裡面起一隻 Claude 當總指揮，並派給它一份帶脈絡的工作——通常是要它執行某支 skill（herdr-codex-wave、herdr-claude-wave、goal-loop⋯），也可以是一段純文字任務。使用者說的「claude 版本／codex 版本」指的是**要跑哪一支 wave skill**，pane 裡起的一律是 Claude。確認它真的跑起來就交手，不佔用主 agent。Use this whenever the user wants to spin up another agent in a Herdr pane and hand it work, delegate a skill to a separate pane, or start a wave/loop in its own terminal. Triggers： "開新 pane 叫 claude 跑 X", "用 herdr 派 X 給 claude", "開一隻 agent 執行 X", "用 codex 版本", "用 claude 版本", "派 herdr-codex-wave", "派 herdr-claude-wave", "開個 pane 跑 parallel-loop", "spin up an agent to run X", "open a herdr pane and have claude do X", "delegate this skill to another pane"。需要 HERDR_ENV=1。
 ---
 
 # create-herdr-wave-agent

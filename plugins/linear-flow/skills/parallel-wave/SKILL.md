@@ -1,6 +1,6 @@
 ---
 name: parallel-wave
-description: "用 Agent + git worktree 分波平行完成一批 Linear 票：先盤點哪些票真的能同時跑（依賴關係 + 共用檔衝突風險），每票一個 worktree 派一個 subagent 實作，回收時逐一審碼、rebase、fast-forward 合併、實跑驗證、推 Done、解鎖下游。**不需要 Herdr、不需要任何外部工具**，只用內建 Agent tool，與需要 HERDR_ENV 的 parallel-loop 是兩回事。Use this whenever the user wants to work several tickets at once, asks which tickets can be parallelized, wants to speed up a backlog with multiple agents, or asks to batch through a set of unblocked issues. Triggers: \"平行處理哪些票\", \"開多個 agent 跑票\", \"這輪能並行做哪些\", \"一次做幾張票\", \"分波處理\", \"開下一波\", \"多開幾個 agent 同時做\", \"哪些票可以同時進行\", \"work these tickets in parallel\", \"spin up agents for these issues\", \"which tickets can run at the same time\", \"batch through the unblocked tickets\". 使用者說「直接開始下一輪」而上一波剛收完時也該觸發。"
+description: "用 Agent + git worktree 分波平行完成一批 Linear 票：先盤點哪些票真的能同時跑（依賴關係 + 共用檔衝突風險），每票一個 worktree 派一個 subagent 實作，回收時逐一審碼、rebase、fast-forward 合併、實跑驗證、推 Done、解鎖下游。**不需要 Herdr、不需要任何外部工具**，只用內建 Agent tool，與需要 HERDR_ENV 的 herdr-claude-wave 是兩回事。Use this whenever the user wants to work several tickets at once, asks which tickets can be parallelized, wants to speed up a backlog with multiple agents, or asks to batch through a set of unblocked issues. Triggers: \"平行處理哪些票\", \"開多個 agent 跑票\", \"這輪能並行做哪些\", \"一次做幾張票\", \"分波處理\", \"開下一波\", \"多開幾個 agent 同時做\", \"哪些票可以同時進行\", \"work these tickets in parallel\", \"spin up agents for these issues\", \"which tickets can run at the same time\", \"batch through the unblocked tickets\". 使用者說「直接開始下一輪」而上一波剛收完時也該觸發。"
 ---
 
 # Parallel Wave —— 分波平行執行票券
@@ -11,7 +11,7 @@ description: "用 Agent + git worktree 分波平行完成一批 Linear 票：先
 
 一波 = 一批互相獨立的票同時開工，全部回收整合完才考慮下一波。
 
-這比連續 drain 好在：每波之間有一個清楚的檢查點，使用者能看到完整結果再決定要不要繼續；而且下一波的候選票是在「上一波成果已進 base 分支」的前提下重新盤點的，解鎖關係才算得準。連續 loop 適合無人監督地清空看板（那是 `linear-goal-loop` 與 `parallel-loop` 的領域），本 skill 適合**有人在旁邊、要看得懂每一步**的批次推進。
+這比連續 drain 好在：每波之間有一個清楚的檢查點，使用者能看到完整結果再決定要不要繼續；而且下一波的候選票是在「上一波成果已進 base 分支」的前提下重新盤點的，解鎖關係才算得準。連續 loop 適合無人監督地清空看板（那是 `linear-goal-loop` 的領域），本 skill 適合**有人在旁邊、要看得懂每一步**的批次推進。
 
 ---
 
@@ -158,7 +158,14 @@ git -C "$MAIN" merge --ff-only <branch>
 
 然後推 `states.done`，並照 `.claude/linear-workflow.md` 的規則檢查下游解鎖：取這張票 `blocks` 的下游，逐一實查它們**自己的**所有 `blockedBy`，全清才推 `states.todo` 並加解鎖註解。**解鎖註解要寫「現在可以直接用什麼」**——已完成的元件路徑、已備妥的接口、該避開的坑。下一個接手的人（或 agent）會省下大量摸索。
 
-**合併完立刻移除 worktree**，別堆積：`git worktree remove <path>`。
+**合併完立刻回收現場**，別堆積——worktree 與分支一起收，兩件事都是合併流程的一部分，不是善後：
+
+```bash
+git -C <主 repo> worktree remove <worktree 路徑>
+git -C <主 repo> branch -d <branch>
+```
+
+**用 `-d` 不用 `-D`。** `-d` 在分支尚未完全併入 base 時會拒絕，那正是最後一道保險：拒絕就代表你以為合進去的東西其實沒進去。被拒就**保留分支**、停下來查為什麼，並在收工回報講明哪一條沒收——不要改用 `-D` 硬刪。worktree 裡還有未提交改動時 `worktree remove` 也會拒絕，同樣先查清楚，別加 `--force`。
 
 ---
 
@@ -169,7 +176,8 @@ git -C "$MAIN" merge --ff-only <branch>
 - 每張票的 commit、內容、**驗證強度**（只編譯過？有幾個測試？）——不要讓「全部完成」掩蓋掉驗證深度的差異
 - **沒驗到的部分集中列出**：實機、視覺、跨平台、與外部系統的真實互通
 - 解鎖了哪些下游，還有哪些卡住、卡在誰
-- **待使用者決定的事**：要不要 push（本 skill 全程不 push）、要不要刪已合併的分支、要不要開下一波
+- **待使用者決定的事**：要不要 push（本 skill 全程不 push）、要不要開下一波
+- **沒收乾淨的現場**（有才寫）：哪個 worktree 或分支因為 `remove` / `-d` 被拒而留著，原因是什麼
 - 下一波的建議與理由
 
 **發現值得記住的專案特定坑**（那個看不出真因的建置錯誤、某個工具的怪癖），寫進記憶，下次不用再撞一遍。
@@ -187,6 +195,8 @@ git -C "$MAIN" merge --ff-only <branch>
 | 把「編譯過」寫成驗收通過 | 視覺與實機行為完全沒驗到，日後回查會被誤導 |
 | 高風險衝突票硬塞同一波 | 省下的時間全還給衝突解決，還可能解錯 |
 | 一次問使用者一個問題 | 用 AskUserQuestion 一次問完 2~4 題，附推薦選項 |
+| 合併成功卻把 worktree 與分支留著 | 一波留幾個，幾波之後沒人分得清哪個現場是活的；回收屬於合併流程，不是收工才做的事 |
+| `-d` 或 `worktree remove` 被拒就加 `-D` / `--force` | 被拒代表有東西沒進 base 或沒提交，強制執行會讓那份成果永久消失 |
 
 ---
 

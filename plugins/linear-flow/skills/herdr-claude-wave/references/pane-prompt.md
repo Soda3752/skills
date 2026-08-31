@@ -13,10 +13,10 @@
 
 ## 為什麼是散文而不是 slash command
 
-Claude pane 認得 skill，所以理論上可以像 `parallel-loop` 那樣只送一行 `/some-ticket-skill PROJ-111`。**分波推進的場景不適合走那條路**，兩個理由：
+Claude pane 認得 skill，所以理論上可以只送一行 `/some-ticket-skill PROJ-111`。**分波推進的場景不適合走那條路**，兩個理由：
 
 1. **一波裡每張票的脈絡差很多**——閘門清單、鄰居是誰、獨佔哪些檔、指路到哪個既有實作，全都是逐票不同的。slash command 傳不進去這些，最後還是得補一段散文，變成維護兩份。
-2. **`parallel-loop` 走 slash command 是因為它的任務書有 200 行且完全通用**（每票只差票號與 port）。本 skill 沒有那份通用任務書。
+2. **slash command 只在任務書夠長又完全通用時才划算**（每票只差票號與 port 那種）。本 skill 沒有那份通用任務書。
 
 散文加標題的效果好，因為理由講得出來——而理由是 pane 自己判斷邊界情境時唯一能依據的東西。**指令裡每一條限制都附上「為什麼」。**
 
