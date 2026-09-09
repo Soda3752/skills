@@ -1,0 +1,51 @@
+{
+  "baseUrl": "http://localhost:5173",
+  "outDir": "vault/attachments",
+  "viewport": { "width": 1440, "height": 900 },
+  "mobileViewport": { "width": 390, "height": 844 },
+
+  "auth": {
+    "loginPath": "/login",
+    "storageStatePath": ".playwright-auth.json",
+    "steps": [
+      { "fill": "input[name=account]", "value": "env:APP_ACCOUNT" },
+      { "fill": "input[name=password]", "value": "env:APP_PASSWORD" },
+      { "click": "button[type=submit]" },
+      { "waitFor": "text=儀表板" }
+    ]
+  },
+
+  "shots": [
+    {
+      "name": "01-登入",
+      "path": "/login",
+      "waitFor": "button[type=submit]"
+    },
+    {
+      "name": "02-訂單列表",
+      "path": "/orders",
+      "waitFor": "table tbody tr",
+      "hide": [".clock", "[data-testid=avatar]"]
+    },
+    {
+      "name": "03-訂單列表-已完成分頁",
+      "path": "/orders?status=done",
+      "waitFor": "table tbody tr"
+    },
+    {
+      "name": "04-訂單詳情",
+      "path": "/orders/1001",
+      "waitFor": "h1",
+      "fullPage": true,
+      "mobile": true
+    },
+    {
+      "name": "05-建立訂單-Modal",
+      "path": "/orders",
+      "actions": [
+        { "click": "button:has-text('建立訂單')" },
+        { "waitFor": "[role=dialog]" }
+      ]
+    }
+  ]
+}

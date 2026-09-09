@@ -69,8 +69,8 @@
     {
       "name": "obsidian",
       "source": "./plugins/obsidian",
-      "description": "在專案內建立 Obsidian vault 與 project-scope MCP server（@bitbonsai/mcpvault）的初始化 SOP。",
-      "version": "0.1.0",
+      "description": "在專案內建立 Obsidian vault 與 project-scope MCP server（@bitbonsai/mcpvault）的初始化 SOP；以及把手機（KMP / Compose）或網頁（React / Next / Vue / Svelte）專案整理成「以畫面為主軸」的 wiki——每個畫面帶截圖、UI 元素對到 API 欄位，每支 API 帶呼叫它的畫面截圖與反向欄位對照，雙向連結，附環境診斷、Playwright 截圖腳本與連結驗證腳本。",
+      "version": "0.3.0",
       "category": "workflow",
       "keywords": [
         "obsidian",
@@ -78,7 +78,18 @@
         "notes",
         "mcp",
         "mcpvault",
-        "onboarding"
+        "onboarding",
+        "wiki",
+        "screen",
+        "api",
+        "documentation",
+        "screenshot",
+        "playwright",
+        "kmp",
+        "compose",
+        "react",
+        "web",
+        "multi-column"
       ]
     },
     {
