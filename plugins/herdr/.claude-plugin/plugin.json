@@ -1,7 +1,7 @@
 {
   "name": "herdr",
   "description": "在 Herdr 終端多工器裡把工作交給另一個 pane 的 agent：開 pane、起一隻 Claude 當總指揮、派一份帶脈絡的工作（某支 skill 或純文字任務），確認它真的跑起來就交手，不佔用主 agent。使用者說的「claude 版本／codex 版本」指的是要跑哪一支 wave skill，pane 裡起的一律是 Claude。另附接力交接：把自己手上做到一半的工作交給新 tab 裡 context 全新的 Claude，驗證接手成功後關掉自己，並留一份 pm_report 風格的交接紀錄。與票券系統無關，單裝就能用。 接力交接的收尾（切焦點＋關掉自己）由附帶腳本 close-self.sh 執行，驗證沒過就 exit 非 0 且不關任何 pane，不交給 LLM 判斷。",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "author": {
     "name": "sodalee"
   },

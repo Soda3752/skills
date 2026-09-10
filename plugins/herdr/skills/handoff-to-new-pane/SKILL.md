@@ -254,7 +254,7 @@ herdr agent read <name> --source recent-unwrapped --lines 40
 
 | # | 動作 | 不通過會怎樣 |
 | --- | --- | --- |
-| 1 | 讀 `herdr agent get <name>` 的 `agent_status` | 非 `working` 就停，exit 3，什麼都沒關 |
+| 1 | 讀 `herdr agent get <name>` 的 `agent_status` | 非 `working`／`done` 就停，exit 3，什麼都沒關 |
 | 2 | 讀 `herdr agent read` 的畫面，要求 ≥ 40 個非空白字元 | 太空就停，exit 4，什麼都沒關 |
 | 3 | `herdr tab focus <新 tab id>` | focus 失敗就停，exit 5，不關自己 |
 | 4 | `herdr pane close <自己>` | 成功則 exit 0，本行之後這個 pane 就不存在了 |
@@ -262,8 +262,12 @@ herdr agent read <name> --source recent-unwrapped --lines 40
 exit code 對應：`2` 參數不對、`3` 接手方狀態不合格、`4` 畫面是空的、`5` focus 失敗。
 **非 0 一律等於交接沒完成、舊 pane 還活著**，照下面那段回報，不要手動補一行 `pane close` 繞過去。
 
-`idle` 是唯一需要你介入的情況：腳本預設拒絕（第 5 步說過 `idle` 可疑）。
+`working` 和 `done` 都算接手成功——你在第 4 步叫它「回報完就停下來等使用者」時，
+它跑完那段回報的終態就是 `done`，稍後閒置一會兒會變 `idle`。這不是失敗。
+
+`idle` 是唯一需要你介入的情況：腳本預設拒絕（第 5 步說過 `idle` 可疑，它可能代表 prompt 根本沒送到）。
 你讀畫面確認它真的在講這份工作之後，才加 `--accept-idle` 重跑一次。
+**只叫它回報就停的交接，八成會落在 `idle`，所以這個 flag 是常態而不是例外。**
 
 因為 `pane close` 是整支 skill 的最後一個動作，後面不會再有機會做任何事、也不會再有機會回報：
 

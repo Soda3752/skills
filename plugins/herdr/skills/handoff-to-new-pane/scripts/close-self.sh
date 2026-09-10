@@ -53,7 +53,9 @@ STATUS="${STATUS:-unparsable}"
 echo "close-self: agent=$AGENT status=$STATUS"
 
 case "$STATUS" in
-  working) : ;;
+  # working：接手了正在做事。done：接手了、回報完就停下來等使用者（第 4 步叫它「回報完就停」時的正常終態）。
+  # 兩者都算接手成功；真正要擋的是 blocked / idle / unknown / unparsable。
+  working|done) : ;;
   idle)
     if [ "$ACCEPT_IDLE" -ne 1 ]; then
       echo "close-self: idle 可疑（prompt 可能沒送到）。先讀畫面確認它真的在講這份工作，" >&2
