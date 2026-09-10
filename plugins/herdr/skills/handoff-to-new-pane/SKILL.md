@@ -151,7 +151,7 @@ prompt 會有換行、引號、路徑，**用單引號硬塞會爆**。寫成檔
 
 ```bash
 cat > "$TMPDIR/handoff-prompt.txt" <<'PROMPT'
-你正在接手一份進行中的工作，前一個 session 的 pane 交接完就關掉了。
+你正在接手一份進行中的工作，前一個 session 的 pane（<舊 pane id>）交接完就會關掉。
 以下是完整脈絡，你不需要再去讀任何交接文件就能開工。
 
 ## 目標
@@ -185,6 +185,8 @@ cat > "$TMPDIR/handoff-prompt.txt" <<'PROMPT'
 
 請先用三到五行跟使用者說你接到了什麼、下一步要做什麼（他的畫面剛從舊 pane 切過來，
 需要看到接得上），然後直接開始做第一步，不要等他再確認一次。
+
+舊 pane 的關閉不用你管——我讀到你這段開場回應之後才會關自己，所以你開場時它一定還在。
 PROMPT
 
 herdr agent prompt <name> "$(cat "$TMPDIR/handoff-prompt.txt")" --wait --timeout 60000 2>&1 | tail -5 || true
@@ -197,6 +199,13 @@ herdr agent prompt <name> "$(cat "$TMPDIR/handoff-prompt.txt")" --wait --timeout
 
 **最後那段「先講你接到什麼」不要省。** 舊 pane 一關，剛才的對話就從畫面上消失了；
 使用者切到新 tab 如果看到的是一片空白或一堆工具輸出，他不知道交接成不成功。
+
+**不要在 prompt 裡叫接手方「確認舊 pane 已關閉」。** 這條在時序上必然不成立：
+第 5 步規定要讀到接手方的開場回應才准關自己，所以接手方開場的那一刻，舊 pane 一定還開著。
+它照著查只會查到「舊 pane 還在」，然後把這個當成 bug 回報給使用者。
+
+舊 pane 的關閉是**發起方**第 6 步的責任，不外包。真要讓接手方複查，
+就得像上面模板那樣明講「我讀到你的回應之後才會關」，並請它稍後再查。
 
 ## 步驟 5：查證它真的接手了
 
@@ -222,30 +231,54 @@ herdr agent read <name> --source recent-unwrapped --lines 40
 讀不到完整輸出（`--lines` 加大也撈不到）代表它跑在 alternate screen，
 這時**才**改叫它把回應寫成檔案、你去讀檔。這是 fallback，不要一開始就這樣要求。
 
-## 步驟 6：把焦點交過去，然後關掉自己
+這一步你自己讀一遍是為了**判斷內容對不對**；第 6 步的腳本會再機械化檢查一次狀態與畫面長度，
+兩者不重複——腳本擋的是「明顯還沒接手」，你擋的是「接手了但在講別的事」。
 
-順序不能反——先切焦點，再關自己。反過來的話使用者會有一瞬間盯著一個正在消失的 pane。
+## 步驟 6：把焦點交過去，然後關掉自己（用腳本，不要自己下指令）
+
+這一步**不由你逐行下指令**，交給 skill 附的腳本跑：
 
 ```bash
-herdr tab focus <新 tab id>
-herdr pane close "$HERDR_PANE_ID"
+"$CLAUDE_PLUGIN_ROOT/skills/handoff-to-new-pane/scripts/close-self.sh" \
+  --agent <name> --tab <新 tab id>
 ```
 
-`pane close` 會終止這個 pane 裡的 Claude session，**它是整支 skill 的最後一個動作**，
-後面不會再有機會做任何事、也不會再有機會回報。所以：
+`--pane` 省略時取 `$HERDR_PANE_ID`（就是自己這格）。想先看它會做什麼就加 `--dry-run`。
+
+**為什麼是腳本。** 「驗證沒過就不准關自己」這條規則交給 LLM 判斷，就有機會被跳過，
+而這一步的失敗是不可逆的——舊 pane 一關，脈絡兩邊都沒了，沒有第二次機會。
+所以把 gate 寫成程式：狀態不對就 exit 非 0，且完全不會走到 `pane close`。
+腳本本身也保證了順序（先 `tab focus` 再 `pane close`），不會反過來讓使用者盯著一個正在消失的 pane。
+
+腳本做的事，依序：
+
+| # | 動作 | 不通過會怎樣 |
+| --- | --- | --- |
+| 1 | 讀 `herdr agent get <name>` 的 `agent_status` | 非 `working` 就停，exit 3，什麼都沒關 |
+| 2 | 讀 `herdr agent read` 的畫面，要求 ≥ 40 個非空白字元 | 太空就停，exit 4，什麼都沒關 |
+| 3 | `herdr tab focus <新 tab id>` | focus 失敗就停，exit 5，不關自己 |
+| 4 | `herdr pane close <自己>` | 成功則 exit 0，本行之後這個 pane 就不存在了 |
+
+exit code 對應：`2` 參數不對、`3` 接手方狀態不合格、`4` 畫面是空的、`5` focus 失敗。
+**非 0 一律等於交接沒完成、舊 pane 還活著**，照下面那段回報，不要手動補一行 `pane close` 繞過去。
+
+`idle` 是唯一需要你介入的情況：腳本預設拒絕（第 5 步說過 `idle` 可疑）。
+你讀畫面確認它真的在講這份工作之後，才加 `--accept-idle` 重跑一次。
+
+因為 `pane close` 是整支 skill 的最後一個動作，後面不會再有機會做任何事、也不會再有機會回報：
 
 - 該寫的檔案（交接紀錄）在第 2 步就要寫完並存好
 - 該講的話在第 4 步就要交代給新 agent 去講
-- 第 5 步任何一項沒過，就**不要執行這行**，改為保留舊 pane 並回報卡在哪
 
 ### 驗證沒過怎麼回報
 
-不要關自己，然後照這個講：
+腳本 exit 非 0 就是這個情況。不要手動關自己，照這個講：
 
 ```
 交接沒完成，舊 pane（這裡）保留著。
 
 新 tab：<tab id>，agent <name>，狀態 <blocked/idle/unknown>
+close-self.sh exit <code>，訊息：<照抄>
 它畫面上顯示：<照抄關鍵幾行>
 
 交接紀錄已存：.claude/report/<日期>/交接紀錄-<主題>.md
@@ -258,6 +291,9 @@ herdr pane close "$HERDR_PANE_ID"
 ## 不要做的事
 
 - **不要**在第 5 步沒過的時候關掉自己。脈絡兩邊都丟是這支 skill 唯一的災難級失敗。
+- **不要**自己手打 `herdr pane close` 收尾，一律走 `close-self.sh`；它 exit 非 0 就是不准關，不要繞過去。
+- **不要**在派工 prompt 裡要求接手方驗證「舊 pane 已關閉」。第 5 步要先讀到它的開場回應才會關自己，
+  所以它開場時舊 pane 必然還在——它只會查到「還在」，然後當成 bug 回報。關閉是發起方的責任。
 - **不要**在有背景任務（`/loop`、背景 Bash）還在跑的時候直接關，先問使用者。
 - **不要**只把交接紀錄的路徑丟給新 agent 當交接。載體是 prompt，檔案是給人看的。
 - **不要**省略 `--cwd "$PWD"`，新 agent 會在家目錄開工。
@@ -266,3 +302,9 @@ herdr pane close "$HERDR_PANE_ID"
 - **不要**在交接前自己 `git commit` 未 commit 的變更，除非使用者交代過。寫進紀錄就好。
 - **不要**把交接紀錄寫成技術調查報告。六段、給人看、幾分鐘讀完。
 - **不要**先關自己再切焦點。
+
+## 附帶腳本
+
+| 檔案 | 用途 |
+| --- | --- |
+| `scripts/close-self.sh` | 第 6 步的收尾：查證接手方 → `tab focus` → `pane close` 自己。gate 寫在腳本裡，狀態不對就 exit 非 0 且不關任何 pane。用 `$CLAUDE_PLUGIN_ROOT` 定位，`--dry-run` 可先試跑。 |

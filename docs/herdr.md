@@ -205,6 +205,45 @@ Herdr 提供的東西是替代不了的：
 - 它讓你隨時切過去看、中斷、接手。
 - 它用穩定的 pane id 定位，不靠畫面內容猜。
 
+## 另一支：接力交接（handoff-to-new-pane）
+
+`create-herdr-wave-agent` 是把**別的**工作派出去，自己還在。
+`handoff-to-new-pane` 是把**自己手上做到一半的活**交出去，然後下場——接力棒交完就關掉自己這個 pane。
+
+它取代「`/handoff:create` → `/clear` → `/handoff:resume`」那套要手動觸發三次的流程。你說一句「交接給新的 pane」就跑完。
+
+| 你說 | 發生什麼 |
+| --- | --- |
+| 交接給新的 pane | 收斂脈絡 → 寫紀錄 → 開新 tab 起 Claude → 派完整脈絡 → 查證 → 關掉自己 |
+| context 快滿了幫我交接 | 同上 |
+| 開新 pane 接手然後關掉自己 | 同上 |
+
+兩個設計重點：
+
+**交接載體是 prompt，不是檔案。** 新 agent 一開場就拿到完整脈絡直接開工，不必先讀一份文件。
+同時寫進 `.claude/report/YYYY_MM_DD/` 的那份紀錄是**給人看的**——你過幾天回來要知道當時交接了什麼。
+
+**關掉自己由腳本執行，不由 LLM 下指令。** 最後一步是 `scripts/close-self.sh`：
+
+```
+close-self.sh --agent <name> --tab <新 tab id> [--accept-idle] [--dry-run]
+```
+
+它依序查 `agent_status`（要 `working`）、查接手方畫面不是空的、`tab focus` 新 tab，全過才 `pane close` 自己。
+任何一關沒過就 exit 非 0，且**完全不會**關掉任何 pane。
+
+理由是這一步不可逆：舊 pane 一關，脈絡兩邊都沒了，沒有第二次機會。
+「驗證沒過就不准關自己」這條規則交給 LLM 判斷就有機會被跳過，寫成程式就不會。
+
+### 一個容易寫錯的驗證項
+
+不要在派工 prompt 裡叫接手方「確認舊 pane 已關閉」。
+
+時序上那件事必然還沒發生：發起方要先讀到接手方的開場回應、確認接手成功，才會關自己。
+所以接手方開場的那一刻，舊 pane 一定還在。它照著查只會查到「還在」，然後把這個當成 bug 回報給你。
+
+舊 pane 的關閉是發起方的責任，不外包。
+
 ## 與 linear-flow 的關係
 
 `linear-flow` 裡有幾支 skill 自己也會開 Herdr pane：
