@@ -65,7 +65,7 @@ while IFS= read -r f; do
   e=$(grep -c '^--- end-multi-column' "$f")
   [ "$s" = 0 ] && [ "$b" = 0 ] && [ "$e" = 0 ] && continue
   if [ "$s" != "$b" ] || [ "$s" != "$e" ]; then
-    echo "  ❌ $f：start=$s break=$b end=$e"; MISS=1
+    echo "  ❌ ${f}：start=$s break=$b end=$e"; MISS=1
   fi
 done < <(find . -name "*.md")
 DUP=$(grep -rh '^--- start-multi-column:' --include='*.md' . 2>/dev/null | sort | uniq -d)

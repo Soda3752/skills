@@ -239,8 +239,21 @@ herdr agent read <name> --source recent-unwrapped --lines 40
 這一步**不由你逐行下指令**，交給 skill 附的腳本跑：
 
 ```bash
-"$CLAUDE_PLUGIN_ROOT/skills/handoff-to-new-pane/scripts/close-self.sh" \
+"<這支 skill 的 base directory>/scripts/close-self.sh" \
   --agent <name> --tab <新 tab id>
+```
+
+`<這支 skill 的 base directory>` 是**載入這支 skill 時系統告訴你的那個絕對路徑**
+（形如 `~/.claude/plugins/cache/<marketplace>/herdr/<版號>/skills/handoff-to-new-pane`），
+直接把它填進去。
+
+**不要寫 `$CLAUDE_PLUGIN_ROOT`。** 那個環境變數在 Claude Code 主 session 的 shell 裡**沒有被設定**，
+照抄會展開成空字串，變成去根目錄找 `/skills/...` 而失敗。已在三個獨立 session 確認。
+
+真的想不起 base directory 就用 `find` 撈一次，不要猜：
+
+```bash
+find ~/.claude/plugins -path '*/handoff-to-new-pane/scripts/close-self.sh' 2>/dev/null | sort | tail -1
 ```
 
 `--pane` 省略時取 `$HERDR_PANE_ID`（就是自己這格）。想先看它會做什麼就加 `--dry-run`。
@@ -296,6 +309,7 @@ close-self.sh exit <code>，訊息：<照抄>
 
 - **不要**在第 5 步沒過的時候關掉自己。脈絡兩邊都丟是這支 skill 唯一的災難級失敗。
 - **不要**自己手打 `herdr pane close` 收尾，一律走 `close-self.sh`；它 exit 非 0 就是不准關，不要繞過去。
+- **不要**用 `$CLAUDE_PLUGIN_ROOT` 組 `close-self.sh` 的路徑，那個變數是空的；用這支 skill 的 base directory。
 - **不要**在派工 prompt 裡要求接手方驗證「舊 pane 已關閉」。第 5 步要先讀到它的開場回應才會關自己，
   所以它開場時舊 pane 必然還在——它只會查到「還在」，然後當成 bug 回報。關閉是發起方的責任。
 - **不要**在有背景任務（`/loop`、背景 Bash）還在跑的時候直接關，先問使用者。
@@ -311,4 +325,4 @@ close-self.sh exit <code>，訊息：<照抄>
 
 | 檔案 | 用途 |
 | --- | --- |
-| `scripts/close-self.sh` | 第 6 步的收尾：查證接手方 → `tab focus` → `pane close` 自己。gate 寫在腳本裡，狀態不對就 exit 非 0 且不關任何 pane。用 `$CLAUDE_PLUGIN_ROOT` 定位，`--dry-run` 可先試跑。 |
+| `scripts/close-self.sh` | 第 6 步的收尾：查證接手方 → `tab focus` → `pane close` 自己。gate 寫在腳本裡，狀態不對就 exit 非 0 且不關任何 pane。用**這支 skill 的 base directory** 定位（不是 `$CLAUDE_PLUGIN_ROOT`，那個是空的），`--dry-run` 可先試跑。 |
