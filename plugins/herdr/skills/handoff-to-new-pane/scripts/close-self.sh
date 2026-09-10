@@ -90,6 +90,6 @@ if ! herdr tab focus "$TAB" >/dev/null 2>&1; then
   echo "close-self: tab focus $TAB 失敗，使用者的視線還在舊 pane，不關自己。" >&2
   exit 5
 fi
-echo "close-self: 焦點已切到 $TAB，接著關閉 $PANE"
+echo "close-self: 焦點已切到 ${TAB}，接著關閉 $PANE"
 
 exec herdr pane close "$PANE"
