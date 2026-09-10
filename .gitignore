@@ -9,3 +9,6 @@ scripts/.anonymize-map.json
 
 # 本機草稿筆記，不進版控
 docs/*.textbundle/
+
+# 本機工作慣例，不進版控
+CLAUDE.local.md
