@@ -108,8 +108,8 @@
     {
       "name": "kmp-architecture",
       "source": "./plugins/kmp-architecture",
-      "description": "Kotlin Multiplatform MVVM 架構規格書：Compose Multiplatform 共享 UI、Koin DI、Ktor、Navigation3，含多 subagent 平行改寫工作流；另附 Compose Preview 截圖工具鏈（Roborazzi + Robolectric 純 JVM 出圖，讓 agent 直接看見 UI）。",
-      "version": "0.2.0",
+      "description": "Kotlin Multiplatform MVVM 架構規格書：Compose Multiplatform 共享 UI、Koin DI、Ktor、Navigation3，含多 subagent 平行改寫工作流；另附 Compose Preview 截圖工具鏈（Roborazzi + Robolectric 純 JVM 出圖，讓 agent 直接看見 UI）；另附 kmp-awesome 套件偵察（缺什麼能力就即時查精選清單，給比較表、首選與接入片段）。",
+      "version": "0.3.0",
       "category": "architecture",
       "keywords": [
         "kotlin",
@@ -121,7 +121,10 @@
         "navigation3",
         "roborazzi",
         "screenshot",
-        "preview"
+        "preview",
+        "kmp-awesome",
+        "library",
+        "dependency"
       ]
     },
     {
