@@ -57,7 +57,7 @@ actual fun platformModule(): Module = module {
 ### 字串表定義
 
 ```
-composeApp/src/commonMain/composeResources/
+shared/src/commonMain/composeResources/
 ├── values/           # 預設語系（本架構 = 繁體中文 zh-TW，351 條）
 │   └── strings.xml
 ├── values-en/        # 英文
@@ -267,7 +267,7 @@ MaterialTheme(
 
 ## 命名與位置範例（相對結構）
 
-基準目錄：`composeApp/src/`
+基準目錄：`shared/src/`（`:androidApp` 只放 MainActivity / Application / launcher 資源，不放這裡任何東西）
 
 - 多語系核心：
   - `commonMain: base/Language.kt`

@@ -28,15 +28,22 @@ Android / iOS 各自如何初始化，以及新增功能時 DI 需要動哪幾�
 ## 模組佈局
 
 ```
-composeApp/src/
+shared/src/
 ├── commonMain/…/di/AppModule.kt      # val sharedModule = module { … }
 │                                     # expect fun platformModule(): Module（同檔案末行）
 ├── commonMain/…/KoinInit.kt          # fun initKoin(config) = startKoin { … } 共用進入點
 ├── androidMain/…/di/AndroidModule.kt # actual fun platformModule(): Module
-├── androidMain/…/SampleApplication   # Application.onCreate() 呼叫 initKoin { androidContext(...) }
 ├── iosMain/…/di/IosModule.kt         # actual fun platformModule(): Module
 └── iosMain/…/MainViewController.kt   # ensureIosKoinStarted() → initKoin()
+
+androidApp/src/main/
+└── kotlin/…/AppApplication.kt        # Application.onCreate() 呼叫 initKoin { androidContext(...) }
 ```
+
+> Android 的初始化入口在 **`:androidApp`**，不在 `shared/androidMain`——Application 子類屬於
+> App 進入點模組。因此 `:shared` 的 `koin-core` 與 `koin-android` 相依必須宣告成 `api`
+> 而非 `implementation`，否則 `:androidApp` 呼叫 `initKoin` / `androidContext()` 會找不到符號。
+> 見 `references/module-structure.md`。
 
 ### 什麼放 shared、什麼放 platform
 
@@ -294,7 +301,7 @@ fun SampleScreen(
 | sharedModule + `expect platformModule()` | `commonMain: di/AppModule.kt` |
 | initKoin 進入點 | `commonMain: KoinInit.kt` |
 | Android platformModule | `androidMain: di/AndroidModule.kt` |
-| Android 初始化（Application） | `androidMain: AppApplication.kt` |
+| Android 初始化（Application） | `:androidApp` `src/main/kotlin/…/AppApplication.kt` |
 | iOS platformModule | `iosMain: di/IosModule.kt` |
 | iOS 初始化（ensureIosKoinStarted） | `iosMain: MainViewController.kt` |
 | koinViewModel 用法範例 | `commonMain: screen/splash/SplashScreen.kt` |

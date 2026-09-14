@@ -112,8 +112,9 @@ Android — AndroidManifest.xml：<uses-permission android:name="android.permiss
 給出片段後，提醒使用者跑一次編譯確認：
 
 ```bash
-./gradlew :composeApp:compileKotlinIosArm64 :composeApp:assembleDebug
+./gradlew :shared:compileKotlinIosArm64 :androidApp:assembleDebug
 ```
 
-模組名依專案實際情況（`:app:` 或 `:composeApp:`）。
+模組名依專案實際情況：AGP 9 的雙模組專案是 `:shared` + `:androidApp`，
+舊的單模組專案可能是 `:app:` 或 `:composeApp:`。
 只編 Android 過不算數——KMP 的相依問題大半在 iOS 端才爆。

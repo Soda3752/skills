@@ -13,8 +13,9 @@ description: 將任何 Android / KMP 專案（或其中的頁面）改寫成這�
 
 | 層面 | 方案 | 版本（基準） |
 |------|------|------|
-| 語言/平台 | Kotlin Multiplatform（Android minSdk 30 + iosArm64/iosSimulatorArm64） | Kotlin 2.3.20 |
-| UI | Compose Multiplatform（單模組 `composeApp`，共享 UI） | — |
+| 語言/平台 | Kotlin Multiplatform（Android minSdk 30 / compileSdk 36 + iosArm64/iosSimulatorArm64） | Kotlin 2.3.20 |
+| 建置 | Android Gradle Plugin（**雙模組**：`:shared` 套 `com.android.kotlin.multiplatform.library`、`:androidApp` 套 `com.android.application`） | AGP 9.1.0 |
+| UI | Compose Multiplatform（共享 UI 放 `:shared`，`:androidApp` 只是 Android 進入點） | 1.11.1 |
 | DI | Koin | 4.2.0 |
 | 網路 | Ktor（Android: OkHttp engine / iOS: Darwin engine） | 3.4.2 |
 | 導航 | Navigation3（org.jetbrains.androidx.navigation3） | 1.1.1 |
@@ -23,16 +24,25 @@ description: 將任何 Android / KMP 專案（或其中的頁面）改寫成這�
 | 本地儲存 | Multiplatform Settings (russhwolf) | 1.3.0 |
 | 日誌 | Napier | 2.7.1 |
 | 圖片 | Coil 3 | 3.4.0 |
+| AndroidX Core | androidx.core（**不可升 1.19.0**，它要求 compileSdk 37） | 1.16.0 |
 | 多語系 | Compose Multiplatform 內建資源（`Res.string` + `stringResource`）＋自寫 `LocalAppLocale` 執行期切換 | 見 references/platform-i18n-theme.md |
 
 所有版本統一管理於 `gradle/libs.versions.toml`，禁止在 `build.gradle.kts` 寫死版本號。
+
+> ⚠️ **AGP 9 起不存在「單模組 composeApp」這種寫法**。`com.android.application` 與 `com.android.library`
+> 都不能和 `org.jetbrains.kotlin.multiplatform` 共存，而 `com.android.kotlin.multiplatform.library`
+> 只有 library 版本、沒有 application 版本。因此 Android 進入點必須是獨立的 `:androidApp` 模組。
+> 完整的模組佈局、兩份 `build.gradle.kts` 範本、manifest 分工與遷移步驟見 `references/module-structure.md`。
 
 > ⚠️ 多語系以本表與 `references/platform-i18n-theme.md` 為準（Compose 內建資源系統），**不要引入 Lyricist**——舊的專案選型文件曾列 Lyricist，但實際專案未使用。
 
 ## 分層架構總覽
 
+本架構是雙 Gradle 模組：`:shared`（所有 KMP 程式碼與共享 UI）＋ `:androidApp`（純 Android 進入點），
+iOS 由 `iosApp/` 的 Xcode 專案消費 `:shared` 的 framework。
+
 ```
-composeApp/src/
+shared/src/                        # ← 幾乎所有程式碼都在這
 ├── commonMain/kotlin/<package>/
 │   ├── api/
 │   │   ├── core/          # ApiService、HttpClientFactory(expect)、ApiResponse、ApiEndpoints
@@ -48,9 +58,22 @@ composeApp/src/
 │   │   ├── dialog/        # 跨頁共用 Dialog
 │   │   └── theme/         # Color、Typography、Shape、Theme
 │   └── util/              # TimeUtil、平台抽象介面（expect 宣告）
-├── androidMain/           # actual 實作、MainActivity、Android Service
+├── commonMain/composeResources/   # 多語系字串表、drawable
+├── androidMain/           # actual 實作、Android Service
+│   └── AndroidManifest.xml        # 權限宣告 + <service>（無 launcher activity）
 └── iosMain/               # actual 實作、MainViewController、iOS 初始化
+
+androidApp/src/main/       # ← 純 Android 模組，非 KMP；業務邏輯一行都不准放這
+├── AndroidManifest.xml    # launcher Activity、Application 名稱、android:label/theme
+├── kotlin/<package>/AppApplication.kt   # initKoin { androidContext(...) }
+├── kotlin/<package>/MainActivity.kt     # setContent { App() }
+└── res/                   # launcher icon、app_name
+
+iosApp/                    # Xcode 專案，連結 :shared 產出的 framework
 ```
+
+`applicationId`、`buildTypes`、`versionCode/Name`、簽章全部只在 `:androidApp`；
+`:shared` 是單一 variant 的 KMP library，不管這些。
 
 ### 頁面單位結構（subagent 的產出單位）
 
@@ -92,7 +115,7 @@ Screen 頂部有固定掛載順序（照抄即可）：共用效果（如 KeepSc
 5. **業務邏輯抽 UseCase**（`screen/<feature>/domain/`，`suspend operator fun invoke` 慣例），資料存取走 **Repository 介面**（`api/repository/<domain>/`，interface + Impl 成對；Impl 內以 `toResult()` 收斂錯誤，上層只面對 `Result`）。
 6. **一切依賴由 Koin 注入**：建構子注入；UseCase / Repository / StateHolder 一律 `single` 註冊。**ViewModel 之間禁止互相依賴**——跨頁執行期狀態抽成 StateHolder（純 class + Flow，`single`）。
 7. **導航只發生在 Screen 層**，路由是 `@Serializable` 的 `AppRoute : NavKey` sealed interface，back stack 為 MainNavViewModel 持有的 `mutableStateListOf<AppRoute>`。Dialog 顯示走各頁 `dialogUiState`（AppRoute.Dialog 路由為預留機制，entry 未實作前勿使用）。
-8. **commonMain 優先**：只有真正碰平台 API 的碼才進 androidMain/iosMain，以 expect/actual 或介面+平台實作橋接；平台介面綁定必須 Android/iOS **兩邊成對**，iOS 缺能力就給 NoOp 實作。
+8. **commonMain 優先**：只有真正碰平台 API 的碼才進 androidMain/iosMain，以 expect/actual 或介面+平台實作橋接；平台介面綁定必須 Android/iOS **兩邊成對**，iOS 缺能力就給 NoOp 實作。依賴是單向的（`:androidApp → :shared`），所以 `shared/androidMain` **參照不到** `:androidApp` 的 `MainActivity` 與 `R`；需要 Activity 能力時在 `:shared` 定介面、`androidMain` 給實作，由 MainActivity `by inject()` 掛進去。
 9. **時間函數一律寫在 TimeUtil**；用 `kotlin.time.Clock`，不用 `kotlinx.datetime.Clock`。
 10. **命名/位置照本表**，不自創目錄或後綴。
 
@@ -100,6 +123,7 @@ Screen 頂部有固定掛載順序（照抄即可）：共用效果（如 KeepSc
 
 | 檔案 | 內容 | 誰該讀 |
 |------|------|--------|
+| `references/module-structure.md` | `:shared` / `:androidApp` 雙模組佈局、兩份 build.gradle.kts 範本、manifest 分工、AGP 9 限制、單模組遷移步驟 | 基礎設施 agent（Phase 1 第一份必讀） |
 | `references/mvvm-view.md` | Screen/ScreenContent/UiEvent/Preview 範本、screen 目錄慣例 | 改寫頁面的每個 subagent |
 | `references/mvvm-viewmodel.md` | BaseViewModel 全文範本、UiState/DialogEvent、統一錯誤處理鏈 | 基礎設施 agent + 每個頁面 subagent |
 | `references/usecase-repo.md` | UseCase、Repository interface+Impl、StateHolder、Model 慣例 | 每個頁面 subagent |
@@ -120,13 +144,14 @@ Screen 頂部有固定掛載順序（照抄即可）：共用效果（如 KeepSc
 
 所有頁面都依賴這一層，必須先完成並可編譯：
 
+- 模組骨架：`:shared` + `:androidApp` 兩份 `build.gradle.kts`、`settings.gradle.kts`、兩份 manifest、`MainActivity`/`Application`（讀 `references/module-structure.md`）
 - `api/core/`（讀 `references/ktor-api.md`）
 - `base/`（讀 `references/mvvm-viewmodel.md` 的 BaseViewModel 與錯誤處理章節）
 - `di/AppModule.kt` 骨架 + 各平台 KoinInit（讀 `references/koin-di.md`）
 - `ui/navigation/` 骨架 + App.kt NavDisplay（讀 `references/navigation3.md`）
 - `ui/theme/` + 多語系（讀 `references/platform-i18n-theme.md`）
 
-完成標準：專案能 build（Android 至少 `assembleDebug` 過）。
+完成標準：專案能 build（至少 `./gradlew :androidApp:assembleDebug` 過）。
 
 ### Phase 2 — 頁面平行改寫（多 subagent）
 
@@ -176,8 +201,8 @@ Subagent prompt 模板：
 每頁逐項核對下方 checklist，最後跑 build：
 
 ```bash
-JAVA_HOME="<Android Studio JBR 路徑>" ./gradlew :composeApp:assembleDebug
-./gradlew :composeApp:linkDebugFrameworkIosSimulatorArm64   # 目標含 iOS 時
+JAVA_HOME="<Android Studio JBR 路徑>" ./gradlew :androidApp:assembleDebug
+./gradlew :shared:linkDebugFrameworkIosSimulatorArm64   # 目標含 iOS 時
 ```
 
 #### 每頁驗收 checklist
@@ -204,3 +229,7 @@ JAVA_HOME="<Android Studio JBR 路徑>" ./gradlew :composeApp:assembleDebug
 - 忘記 iOS：commonMain 用了 JVM 專屬 API（如 `java.util.*`）——build iOS framework 才會爆，Phase 4 必跑 iOS link。
 - 導航依賴誤用 Android-only 的 `androidx.navigation3` 座標——必須用 JetBrains KMP 座標 `org.jetbrains.androidx.navigation3:navigation3-ui`。
 - 雙層成功語意搞混：HTTP 2xx 不等於業務成功——Repository 必須用 `toResult(checkSuccessFlag = true)` 檢查回應信封的 `success` 欄位。
+- **照舊版規格開單模組 composeApp**（同時套 `com.android.application` + KMP 外掛）——AGP 9.0 起 configuration 階段直接失敗：`The com.android.library (or com.android.application) plugin is not compatible with the org.jetbrains.kotlin.multiplatform plugin since AGP 9.0.`。`gradle.properties` 的 `android.builtInKotlin=false` / `android.newDsl=false` 只是官方標示會在 AGP 10.0 移除的過渡開關，不是解法，拆成 `:shared` + `:androidApp` 才是。
+- **在 `:shared` 寫 buildTypes 或 product flavors**——`com.android.kotlin.multiplatform.library` 是單一 variant，不支援。真的需要 build variants，就另開一個 `com.android.library` 模組放那段，由 `shared/androidMain` 依賴它；`applicationId`／簽章／minify 這類只屬於 App 的設定一律留在 `:androidApp`。
+- **`shared/androidMain` 參照 `:androidApp` 的 `MainActivity` 或 `R`**——依賴是單向的，編譯期就會 unresolved reference，但訊息長得像漏 import。前景服務的 PendingIntent 要改用 `packageManager.getLaunchIntentForPackage(packageName)`，通知標題等字串改放 `:shared` 自己的資源，不要用 `:androidApp` 的 `R.string.app_name`。
+- **`androidx.core` 升到 1.19.0**——它要求 `compileSdk 37`，但 AGP 9.1.0 建議上限是 36，會在 `checkDebugAarMetadata` 直接失敗。釘在 1.16.0。

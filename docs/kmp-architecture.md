@@ -41,8 +41,9 @@ Kotlin Multiplatform 的 MVVM 架構規格。
 
 | 層面 | 方案 | 版本基準 |
 | --- | --- | --- |
-| 語言與平台 | Kotlin Multiplatform（Android minSdk 30 + iOS） | Kotlin 2.3.20 |
-| UI | Compose Multiplatform，單模組 `composeApp` | — |
+| 語言與平台 | Kotlin Multiplatform（Android minSdk 30 / compileSdk 36 + iOS） | Kotlin 2.3.20 |
+| 建置 | Android Gradle Plugin（雙模組 `:shared` + `:androidApp`） | AGP 9.1.0 |
+| UI | Compose Multiplatform，共享 UI 放 `:shared` | 1.11.1 |
 | DI | Koin | 4.2.0 |
 | 網路 | Ktor（Android 用 OkHttp，iOS 用 Darwin） | 3.4.2 |
 | 導航 | Navigation3 | 1.1.1 |
@@ -51,9 +52,32 @@ Kotlin Multiplatform 的 MVVM 架構規格。
 | 本地儲存 | Multiplatform Settings | 1.3.0 |
 | 日誌 | Napier | 2.7.1 |
 | 圖片 | Coil 3 | 3.4.0 |
+| AndroidX Core | androidx.core（不可升 1.19.0） | 1.16.0 |
 | 多語系 | Compose 內建資源 + 自寫 `LocalAppLocale` | — |
 
 多語系**不要引入 Lyricist**。舊的選型文件曾列出它，但實際專案沒有使用。
+
+## 模組結構（AGP 9 起）
+
+AGP 9.0 起 `com.android.application` 與 `com.android.library` 都不能和 `org.jetbrains.kotlin.multiplatform` 共存，
+而取代它的 `com.android.kotlin.multiplatform.library` **只有 library 版本**。所以本架構是雙模組：
+
+```
+shared/       # com.android.kotlin.multiplatform.library + kotlin.multiplatform
+              # commonMain / androidMain / iosMain，共享 UI 也在這
+androidApp/   # com.android.application，純 Android 模組
+              # MainActivity、Application、launcher manifest、applicationId、buildTypes、簽章
+iosApp/       # Xcode 專案，消費 :shared 的 framework
+```
+
+兩個限制要記住：
+
+- `:shared` 不支援 `buildTypes` 與 product flavors。需要 build variants 就另開一個 `com.android.library` 模組。
+- `shared/androidMain` **看不到** `:androidApp` 的 `MainActivity` 與 `R`。通知的 PendingIntent 要用
+  `packageManager.getLaunchIntentForPackage(packageName)`，字串放 `:shared` 自己的資源。
+
+既有單模組專案可用 `android.builtInKotlin=false` / `android.newDsl=false` 暫時繞過，
+但官方明講 AGP 10.0 會移除，不能當長期解。完整範本見 skill 的 `references/module-structure.md`。
 
 ## 十條核心鐵律
 
@@ -115,13 +139,14 @@ back stack 由 MainNavViewModel 持有。
 
 要建立的內容：
 
+- 模組骨架：`:shared` 與 `:androidApp` 兩份 `build.gradle.kts`、兩份 manifest、MainActivity 與 Application
 - `api/core/`
 - `base/`
 - `di/AppModule.kt` 骨架，以及各平台的 KoinInit
 - `ui/navigation/` 骨架，以及 App.kt 的 NavDisplay
 - `ui/theme/` 與多語系
 
-完成標準：Android 的 `assembleDebug` 通過。
+完成標準：`./gradlew :androidApp:assembleDebug` 通過。
 
 ### Phase 2 — 頁面平行改寫
 
@@ -166,8 +191,8 @@ subagent 完成後**回報**四項清單，交給主 agent 集中登記：
 先逐頁核對檢查清單，再跑 build：
 
 ```bash
-JAVA_HOME="<Android Studio JBR 路徑>" ./gradlew :composeApp:assembleDebug
-./gradlew :composeApp:linkDebugFrameworkIosSimulatorArm64   # 目標含 iOS 時
+JAVA_HOME="<Android Studio JBR 路徑>" ./gradlew :androidApp:assembleDebug
+./gradlew :shared:linkDebugFrameworkIosSimulatorArm64   # 目標含 iOS 時
 ```
 
 **iOS link 一定要跑。** commonMain 誤用 JVM 專屬 API（例如 `java.util.*`）時，只有這一步會失敗。
@@ -187,7 +212,7 @@ JAVA_HOME="<Android Studio JBR 路徑>" ./gradlew :composeApp:assembleDebug
 - [ ] `@Preview` 存在且可以渲染。
 - [ ] build 通過。
 
-## 七個常見翻車點
+## 十個常見翻車點
 
 這些錯誤**編譯期不會發現**。主 agent 要主動盯。
 
@@ -212,12 +237,22 @@ commonMain 用了 JVM 專屬 API。只有 build iOS framework 才會失敗。
 **7. 雙層成功語意搞混。**
 HTTP 2xx 不等於業務成功。Repository 必須用 `toResult(checkSuccessFlag = true)` 檢查回應信封的 `success` 欄位。
 
+**8. 照舊版規格開單模組 composeApp。**
+AGP 9.0 起 configuration 階段直接失敗：`The com.android.library (or com.android.application) plugin is not compatible with the org.jetbrains.kotlin.multiplatform plugin since AGP 9.0.`。拆成 `:shared` + `:androidApp`。
+
+**9. 在 `:shared` 寫 buildTypes 或 product flavors。**
+`com.android.kotlin.multiplatform.library` 是單一 variant，不支援。
+
+**10. `androidx.core` 升到 1.19.0。**
+它要求 `compileSdk 37`，但 AGP 9.1.0 建議上限是 36，會在 `checkDebugAarMetadata` 失敗。釘在 1.16.0。
+
 ## References
 
-skill 目錄下有七份深入說明。Claude 依需要讀取，你不必自己指定。
+skill 目錄下有八份深入說明。Claude 依需要讀取，你不必自己指定。
 
 | 檔案 | 內容 |
 | --- | --- |
+| `module-structure.md` | 雙模組佈局、兩份 build.gradle.kts 範本、manifest 分工、單模組遷移步驟 |
 | `mvvm-view.md` | Screen、ScreenContent、UiEvent、Preview 範本 |
 | `mvvm-viewmodel.md` | BaseViewModel 全文範本、統一錯誤處理鏈 |
 | `usecase-repo.md` | UseCase、Repository、StateHolder、Model 慣例 |

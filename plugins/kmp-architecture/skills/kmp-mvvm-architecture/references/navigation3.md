@@ -45,7 +45,7 @@ androidx-lifecycle-viewmodelNavigation3 = { module = "org.jetbrains.androidx.lif
 jetbrains-navigation3-ui = { module = "org.jetbrains.androidx.navigation3:navigation3-ui", version.ref = "multiplatform-nav3" }
 ```
 
-`composeApp/build.gradle.kts` 的 `commonMain.dependencies`：
+`shared/build.gradle.kts` 的 `commonMain.dependencies`：
 
 ```kotlin
 implementation(libs.androidx.lifecycle.viewmodelNavigation3)  // ViewModelStore entry decorator
