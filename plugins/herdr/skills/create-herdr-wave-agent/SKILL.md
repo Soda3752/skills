@@ -1,6 +1,6 @@
 ---
 name: create-herdr-wave-agent
-description: 在 Herdr 裡開一個新 pane、在裡面起一隻 Claude 當總指揮，並派給它一份帶脈絡的工作——通常是要它執行某支 skill（herdr-codex-wave、herdr-claude-wave、goal-loop⋯），也可以是一段純文字任務。使用者說的「claude 版本／codex 版本」指的是**要跑哪一支 wave skill**，pane 裡起的一律是 Claude。確認它真的跑起來就交手，不佔用主 agent。Use this whenever the user wants to spin up another agent in a Herdr pane and hand it work, delegate a skill to a separate pane, or start a wave/loop in its own terminal. Triggers： "開新 pane 叫 claude 跑 X", "用 herdr 派 X 給 claude", "開一隻 agent 執行 X", "用 codex 版本", "用 claude 版本", "派 herdr-codex-wave", "派 herdr-claude-wave", "開個 pane 跑 parallel-loop", "spin up an agent to run X", "open a herdr pane and have claude do X", "delegate this skill to another pane"。需要 HERDR_ENV=1。
+description: 在 Herdr 裡開一個新 pane、在裡面起一隻 Claude 當總指揮，並派給它一份帶脈絡的工作——通常是要它執行某支 skill（herdr-codex-wave、herdr-claude-wave、goal-loop⋯），也可以是一段純文字任務。使用者說的「claude 版本／codex 版本」指的是**要跑哪一支 wave skill**，pane 裡起的一律是 Claude。派 wave/loop 時要在派工裡附授權段，讓它只在第一波確認範圍、之後自行決定波次大小一路做到 Todo 清空。確認它真的跑起來就交手，不佔用主 agent。Use this whenever the user wants to spin up another agent in a Herdr pane and hand it work, delegate a skill to a separate pane, or start a wave/loop in its own terminal. Triggers： "開新 pane 叫 claude 跑 X", "用 herdr 派 X 給 claude", "開一隻 agent 執行 X", "用 codex 版本", "用 claude 版本", "派 herdr-codex-wave", "派 herdr-claude-wave", "開個 pane 跑 parallel-loop", "spin up an agent to run X", "open a herdr pane and have claude do X", "delegate this skill to another pane"。需要 HERDR_ENV=1。
 ---
 
 # create-herdr-wave-agent
@@ -78,8 +78,13 @@ herdr pane split --current --direction <right|down> --cwd "$PWD" --no-focus
 ## 步驟 3：起 agent
 
 ```bash
-herdr agent start <name> --kind claude --pane <上一步的 pane id> --timeout 60000
+herdr agent start <name> --kind claude --pane <上一步的 pane id> --timeout 60000 \
+  -- --permission-mode auto
 ```
+
+`--` 後面的東西是傳給 Claude 本體的參數。**`--permission-mode auto` 不能省**：派出去的指揮要連跑好幾波、幾十分鐘沒人看，預設權限模式下它會為了 `git worktree add`、`cp -Rc`、`herdr` 這類日常指令一直跳確認，然後停在那裡等一個不會來的人。auto 保留真正危險動作的關卡，日常指令直接過。
+
+**不要**升級成 `--dangerously-skip-permissions`。指揮 pane 的 cwd 旁邊就是使用者的主 repo，誤刪、誤 push 零關卡的代價遠大於少停幾次。
 
 **名稱要取得有意義且獨一。** 它是之後所有指令的地址，`agent-1` 這種名字在有三隻 agent 的時候完全沒用。用工作內容命名：`wave-lead`、`e2e-fix`、`proj-11`。
 
@@ -125,9 +130,41 @@ herdr agent prompt <name> '<派工內容>' --wait --timeout 60000 2>&1 | tail -5
 <關鍵事實：票號、檔案路徑、依賴關係、已知限制>
 
 請<明確交代它負責什麼、以及什麼不歸它管>
+
+<授權：第一波確認、之後自主推進到 Todo 清空——見下一節，派 wave/loop 必寫>
 ```
 
 派 wave 那一句要明講，例如「你是指揮，Codex 是實作者，你不要自己寫實作程式碼」。不寫的話它很可能自己捲起袖子把票做完——skill 裡雖然寫了分工，但一份沒提分工的派工會讓它以為這次是例外。
+
+### 授權段：派 wave / loop 一定要寫
+
+`herdr-claude-wave` 與 `herdr-codex-wave` 都是**單波審慎版**——它們的流程本來就寫著「每波開始前停下來與使用者確認範圍」。你把它派到另一個 pane 之後，那個「使用者」變成沒人：它做完一波就停在那裡問「下一波要派幾張」，而你已經交手走人了，於是整批票卡在半路。
+
+**這不是那支 skill 的 bug，是派工少了一段授權。** 所以派 wave 或 loop 時，派工內容最後固定加一段：
+
+```
+授權：
+
+- 第一波開工前，把你盤出來的波次範圍（哪幾張票、為什麼這幾張、各自碰哪些檔）
+  一次問清楚，等我確認再開工。
+- 第一波確認之後就不要再問了。之後每一波要派幾張、派哪幾張、worktree 怎麼切、
+  什麼時候整合，全部你自己判斷，一路做到看板上沒有可動的 Todo 為止。
+- 只有這兩種情況才停下來問我：
+  (1) 票券規格本身有歧義，猜錯會整批重做；
+  (2) 要做的決定會破壞既有功能、或動到 main 以外我沒授權的東西。
+  其餘一律自己選一個合理做法做下去，把假設寫進票券註解。
+- 每一波收工貼一次進度（做完哪幾張、驗收清單、下一波打算派哪幾張），
+  貼完直接接著做，不要等我回話。
+```
+
+幾個寫法上的重點：
+
+- **「第一波」要講清楚是哪一次。** 寫「第一次開工前確認範圍」而不是「一開始確認一下」——後者它可能理解成每波都算「一開始」。
+- **停下來的條件要列舉，不要寫「有問題再問」。** 「有問題」對一個謹慎的 agent 來說涵蓋一切，它會照樣每波都停。
+- **「貼完直接接著做，不要等我回話」不能省。** 只寫「每波回報進度」的話，它回報完會很自然地進入等待——回報在對話裡長得就像一個問句。
+- **收斂條件要具體。** 「做到 Todo 清空」比「做完為止」好，因為前者有一個它查得到的判準（看板上還有沒有無 blocker 的 Todo）。
+
+真的要它每波都停下來等人（例如這批票風險高、使用者想逐波看），那就**明講「每波做完停下來等我確認再開下一波」**——不要靠不寫授權段來達成，那會變成前面那種卡死。
 
 實例：
 
@@ -145,6 +182,11 @@ Project「<專案名>」，共 7 張票 PROJ-11 ~ PROJ-17。
 
 請照 skill 流程盤點看板、決定這一波能派哪幾張票、開 worktree 與 Claude
 pane 實作，並負責 rebase、fast-forward 整合與全部 Linear 狀態與註解。
+
+授權：第一波開工前把波次範圍問我一次，確認後就不要再問——之後每波派幾張、
+派哪幾張、什麼時候整合都你自己判斷，一路做到沒有可動的 Todo 為止。
+只有票券規格有歧義、或決定會破壞既有功能時才停下來問我。
+每波收工貼一次進度就直接接著做，不要等我回話。
 ```
 
 幾條規則：
@@ -153,6 +195,7 @@ pane 實作，並負責 rebase、fast-forward 整合與全部 Linear 狀態與�
 - **脈絡寫事實，不要寫推測。** 「PROJ-11 是 Todo」是事實；「應該先做 PROJ-11」是你的判斷——判斷可以給，但要標明是建議，讓它有機會用自己查到的資料推翻。
 - **交代邊界。** 「你負責整合與 Linear 狀態」跟「不要動 main 以外的分支」一樣重要。沒講邊界的 agent 會擴張範圍。
 - **不要在派工裡要求它把結果寫檔**。除非之後真的讀不到畫面（見「讀不到完整輸出」），否則多此一舉。
+- **派 wave / loop 一定要附授權段。** 你交手之後現場沒有人可以回答它，少了授權就是讓它做完一波停在半路。
 
 ### 為什麼 `|| true` 不能省
 
@@ -210,7 +253,7 @@ herdr agent read <name> --source recent-unwrapped --lines 40
 
 1. **位置**：workspace / tab / pane id，配一張 ASCII 佈局圖標出新 pane 在哪
 2. **身分**：agent 名稱（或 pane id）、kind、版本或模型，以及它正在跑哪一支 skill
-3. **狀態**：現在是 working / blocked，已經走到哪一步（從畫面讀到的實際進度，不是猜的）
+3. **狀態**：現在是 working / blocked，已經走到哪一步（從畫面讀到的實際進度，不是猜的）；派 wave 的話要講明**它只會在第一波開工前問一次範圍，之後會自己跑到 Todo 清空**，讓使用者知道那一次提問要去回
 4. **盯工指令**：可直接複製貼上的三行
 
 ```
@@ -234,3 +277,5 @@ herdr agent wait <name> --until blocked done  # 等它卡住或做完
 - **不要**關掉、切換或 takeover 你沒建立的 pane，除非使用者明確要求。
 - **不要**用 terminal id 當 agent 目標，只有 agent 名稱與 pane id 認得。
 - **不要**派完之後留下來 `agent wait` 空轉，除非使用者要你盯。
+- **不要**在派 wave / loop 時漏掉授權段。那兩支 wave skill 預設每波都會停下來問人，而你已經走了。
+- **不要**省略 `-- --permission-mode auto`。指揮 pane 會在半夜卡在一個權限確認上。
