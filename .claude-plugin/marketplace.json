@@ -108,8 +108,8 @@
     {
       "name": "kmp-architecture",
       "source": "./plugins/kmp-architecture",
-      "description": "Kotlin Multiplatform MVVM 架構規格書（AGP 9 雙模組 :shared + :androidApp）：Compose Multiplatform 共享 UI、Koin DI、Ktor、Navigation3，含模組佈局與 build.gradle.kts 範本、多 subagent 平行改寫工作流；另附 Compose Preview 截圖工具鏈（Roborazzi + Robolectric 純 JVM 出圖，讓 agent 直接看見 UI）；另附 kmp-awesome 套件偵察（缺什麼能力就即時查精選清單，給比較表、首選與接入片段）。",
-      "version": "0.4.0",
+      "description": "Kotlin Multiplatform MVVM 架構規格書（AGP 9 雙模組 :shared + :androidApp）：Compose Multiplatform 共享 UI、Koin DI、Ktor、Navigation3，含模組佈局與 build.gradle.kts 範本、多 subagent 平行改寫工作流；另附 Compose Preview 截圖工具鏈（Roborazzi + Robolectric 純 JVM 出圖，讓 agent 直接看見 UI）；另附 kmp-awesome 套件偵察（缺什麼能力就即時查精選清單，給比較表、首選與接入片段）。 多語系 LocalAppLocale 的 Android actual 已修掉 backwards write（Configuration 複製後再改 + remember 釘住衍生 Context），該寫法會讓整個 App 每秒重組數十次，連帶造成 Coil 圖片全黑、ExoPlayer 黑屏與 TrackSelector 閃退。",
+      "version": "0.4.1",
       "category": "architecture",
       "keywords": [
         "kotlin",
@@ -128,7 +128,10 @@
         "agp",
         "android-gradle-plugin",
         "multi-module",
-        "gradle"
+        "gradle",
+        "recomposition",
+        "compose-performance",
+        "i18n"
       ]
     },
     {

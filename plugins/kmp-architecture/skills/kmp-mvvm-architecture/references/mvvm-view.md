@@ -219,6 +219,15 @@ data class SampleUiState(
 
 ## 常見錯誤（改寫時易犯）
 
+- **`CompositionLocal` 的 provide 值在組合中就地改寫或每次重建**：在 `@Composable` 內修改剛從 `LocalXxx.current` 讀進來的物件（例如 `LocalConfiguration.current.setLocale(...)`）是 backwards write，會讓讀到它的整個範圍無限重組；掛在 App 根部就是整棵樹每秒重組數十次。要 `provides` 出去的衍生物件一律先複製再改，並用 `remember(key...)` 釘住。詳見 `references/platform-i18n-theme.md` 的 `LocalAppLocale` 段。
+- **`AsyncImage(model = url字串)` 沒有穩定化 ImageRequest**：字串在每次組合都會重新建構 `ImageRequest`，被 Coil 判定為已變更而 restart 請求。父層若有非預期重組，圖片會永遠在下載完成前被取消而顯示全黑。穩定寫法：
+
+  ```kotlin
+  val context = LocalPlatformContext.current
+  val request = remember(url) { ImageRequest.Builder(context).data(url).build() }
+  AsyncImage(model = request, contentDescription = null)
+  ```
+
 1. **Content 拿 ViewModel**：`SampleScreenContent(viewModel: SampleViewModel)` 或在 Content 內呼叫 `koinViewModel()` / `koinInject()`——**禁止**。Content 只能收 `UiState` + `(Event) -> Unit`，否則 Preview 會壞、UI 無法單獨測試。
 2. **Content 做導航**：在 Content 裡收 navigator / NavController，或直接呼叫導航 callback——**禁止**。導航一律走「Content 發 Event → Screen 轉發 VM → VM 發 Channel 事件 → Screen 的 `LaunchedEffect` 呼叫外部 callback」。
 3. **在 Screen 直接寫業務判斷**：Screen 的 `onEvent` 只做 `when (event) -> viewModel.onXxx()` 一對一轉發，不在 lambda 內夾業務邏輯。條件式事件（如 ERP 鎖定欄位改發別的事件）判斷放在 **Content** 依 UiState 決定發哪個 Event（參考 `LoginScreenContent` 的 `onCaddieClick`）。

@@ -129,7 +129,9 @@ expect object LocalAppLocale {
 }
 ```
 
-Android actual：改寫 JVM 預設 Locale 並用新 Configuration 換掉 `LocalContext`，讓 compose resources 依新語系解析：
+Android actual：改寫 JVM 預設 Locale 並用新 Configuration 換掉 `LocalContext`，讓 compose resources 依新語系解析。
+
+**這段有兩個必須照做的細節，寫錯會讓整個 App 每秒重組數十次**（實機量到的形狀見本節後面的「無限重組」）：
 
 ```kotlin
 actual object LocalAppLocale {
@@ -139,15 +141,37 @@ actual object LocalAppLocale {
     @Composable
     actual infix fun provides(value: String?): ProvidedValue<*> {
         val configuration = LocalConfiguration.current
+        val context = LocalContext.current
+
         if (defaultLocale == null) defaultLocale = Locale.getDefault()
         val newLocale = if (value == null) defaultLocale!! else Locale.forLanguageTag(value)
-        Locale.setDefault(newLocale)
-        configuration.setLocale(newLocale)
-        val newContext = LocalContext.current.createConfigurationContext(configuration)
-        return LocalContext provides newContext
+
+        val localizedContext = remember(context, configuration, newLocale) {
+            Locale.setDefault(newLocale)
+            // 複製一份再改，絕不就地改寫 LocalConfiguration.current
+            val localizedConfiguration = Configuration(configuration).apply { setLocale(newLocale) }
+            context.createConfigurationContext(localizedConfiguration)
+        }
+
+        return LocalContext provides localizedContext
     }
 }
 ```
+
+1. **`Configuration(configuration)` 複製後再 `setLocale`。** 直接對 `LocalConfiguration.current` 呼叫 `setLocale()` 是 backwards write——在組合中讀了一份狀態又就地寫回去，讀到它的組合範圍立刻失效，下一幀再跑一次，形成無限重組迴圈。這是 Compose 官方效能指南明列的反模式。
+2. **`remember(context, configuration, newLocale)` 把產生的 Context 釘住。** 沒有 remember 的話每次組合都 `createConfigurationContext` 生出新物件，全樹的 `LocalContext.current` 每幀都是不同實例，所有 `remember(context)` 的東西跟著重建。
+
+### 為什麼這個錯誤特別難查：災情看起來像三個不相干的 bug
+
+`LocalAppLocale provides` 掛在 App 最外層，一旦踩到上述任一點，整棵樹從開機到關機持續重組（iSwingKMP 實機量到約每秒 40 次）。而症狀不會指向語系：
+
+| 表面症狀 | 實際機制 |
+| --- | --- |
+| 網路圖片全黑、永遠載不出來 | Coil 的 `AsyncImage(model = 字串)` 每次組合重建 ImageRequest → 被判定已變更而 restart → 每次請求都在下載完成前被取消 |
+| 影片黑屏 | 播放器內部 `remember(context) { ExoPlayer.Builder(context).build() }` → context 每幀都換 → ExoPlayer 每 80ms Init/Release 一輪 |
+| 播第二支影片就閃退 | 同一函式庫的 `remember { DefaultTrackSelector(context) }` **沒帶 key**，不跟著重建；media3 規定一個 TrackSelector 只能綁一個 ExoPlayer，第二次 `init` 丟 `IllegalStateException` |
+
+**診斷順序**：看到「圖片載不出來 + 影片黑屏」同時出現，先用 Layout Inspector 或 `Modifier.recomposeHighlighter` 量根部重組次數，不要從 Coil 或播放器那邊查。修正前後四個層級每 10 秒 324 / 385 / 235 / 480 → 全部 0。
 
 iOS actual：自建 `staticCompositionLocalOf` 並寫入 `NSUserDefaults` 的 `AppleLanguages`：
 
@@ -264,6 +288,8 @@ MaterialTheme(
 - **ViewModel 直接呼叫 `stringResource`**：非 Composable 環境要用 suspend 的 `org.jetbrains.compose.resources.getString`，在 `viewModelScope.launch` 內呼叫。
 - **只改 StateFlow 未持久化（或反之）**：切語言要同時 `userSettingStorage.setLanguage()` 與 `languageStateHolder.setLanguage()`，漏一邊會出現「重啟後語言跳回」或「當下不切換」。
 - **iOS 端照抄 Android 的 Configuration 手法**：iOS 沒有 `LocalConfiguration`/`LocalContext`，必須用自建 `staticCompositionLocalOf` + `AppleLanguages` 的寫法。
+- **在 `@Composable` 內就地改寫 `LocalConfiguration.current`**：`configuration.setLocale(...)` 這種寫法是 backwards write，會讓整個 App 無限重組。一律 `Configuration(configuration)` 複製後再改。
+- **`provides` 出去的衍生物件沒有 `remember` 釘住**：每次組合產生新實例 → 全樹 `LocalContext.current` 每幀都變 → 下游所有 `remember(context)` 跟著重建。任何要 `provides` 出去的衍生物件都必須用 `remember(key...)` 固定。
 
 ## 命名與位置範例（相對結構）
 
