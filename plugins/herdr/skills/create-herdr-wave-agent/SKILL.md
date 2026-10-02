@@ -1,6 +1,6 @@
 ---
 name: create-herdr-wave-agent
-description: 在 Herdr 裡開一個新 pane、在裡面起一隻 Claude 當總指揮，並派給它一份帶脈絡的工作——通常是要它執行某支 skill（herdr-codex-wave、herdr-claude-wave、goal-loop⋯），也可以是一段純文字任務。使用者說的「claude 版本／codex 版本」指的是**要跑哪一支 wave skill**，pane 裡起的一律是 Claude。派 wave/loop 時要在派工裡附授權段，讓它只在第一波確認範圍、之後自行決定波次大小一路做到 Todo 清空。確認它真的跑起來就交手，不佔用主 agent。Use this whenever the user wants to spin up another agent in a Herdr pane and hand it work, delegate a skill to a separate pane, or start a wave/loop in its own terminal. Triggers： "開新 pane 叫 claude 跑 X", "用 herdr 派 X 給 claude", "開一隻 agent 執行 X", "用 codex 版本", "用 claude 版本", "派 herdr-codex-wave", "派 herdr-claude-wave", "開個 pane 跑 parallel-loop", "spin up an agent to run X", "open a herdr pane and have claude do X", "delegate this skill to another pane"。需要 HERDR_ENV=1。
+description: 在 Herdr 裡開一個新 pane、在裡面起一隻 Claude 當總指揮，並派給它一份帶脈絡的工作——通常是要它執行某支 skill（herdr-codex-wave、herdr-claude-wave、goal-loop⋯），也可以是一段純文字任務。使用者說的「claude 版本／codex 版本」指的是**要跑哪一支 wave skill**，pane 裡起的一律是 Claude。pane 裡的 Claude 一律掛上 Remote Control，卡住或收工時推播到使用者手機，使用者也能從手機直接問它進度。派 wave/loop 時要在派工裡附授權段與推播規約，讓它自行決定波次大小一路做到 Todo 清空。確認它真的跑起來就交手，不佔用主 agent。Use this whenever the user wants to spin up another agent in a Herdr pane and hand it work, delegate a skill to a separate pane, or start a wave/loop in its own terminal. Triggers： "開新 pane 叫 claude 跑 X", "用 herdr 派 X 給 claude", "開一隻 agent 執行 X", "用 codex 版本", "用 claude 版本", "派 herdr-codex-wave", "派 herdr-claude-wave", "開個 pane 跑 parallel-loop", "spin up an agent to run X", "open a herdr pane and have claude do X", "delegate this skill to another pane"。需要 HERDR_ENV=1。
 ---
 
 # create-herdr-wave-agent
@@ -79,10 +79,16 @@ herdr pane split --current --direction <right|down> --cwd "$PWD" --no-focus
 
 ```bash
 herdr agent start <name> --kind claude --pane <上一步的 pane id> --timeout 60000 \
-  -- --permission-mode auto
+  -- --permission-mode auto --remote-control "<name>"
 ```
 
-`--` 後面的東西是傳給 Claude 本體的參數。**`--permission-mode auto` 不能省**：派出去的指揮要連跑好幾波、幾十分鐘沒人看，預設權限模式下它會為了 `git worktree add`、`cp -Rc`、`herdr` 這類日常指令一直跳確認，然後停在那裡等一個不會來的人。auto 保留真正危險動作的關卡，日常指令直接過。
+`--` 後面的東西是傳給 Claude 本體的參數。兩個都不能省。
+
+**`--permission-mode auto`**：派出去的指揮要連跑好幾波、幾十分鐘沒人看，預設權限模式下它會為了 `git worktree add`、`cp -Rc`、`herdr` 這類日常指令一直跳確認，然後停在那裡等一個不會來的人。auto 保留真正危險動作的關卡，日常指令直接過。
+
+**`--remote-control "<name>"`**：讓這隻指揮掛上 Remote Control，於是它出現在 claude.ai 與手機 app 的 session 清單裡。這帶來兩件事——它卡住時 `PushNotification` 推得到使用者手機；使用者人不在電腦前時可以直接從手機問它進度、回它的決策問題。**一律加，不要問使用者要不要**：派出去的工作本來就是長時間沒人看的，推得到比推不到好。
+
+Remote Control 的前提是使用者已經在 claude.ai 登入同一個帳號。沒登入時 flag 加了也只是沒地方推，**不會讓 agent 起不來**，所以不需要事先檢查。
 
 **不要**升級成 `--dangerously-skip-permissions`。指揮 pane 的 cwd 旁邊就是使用者的主 repo，誤刪、誤 push 零關卡的代價遠大於少停幾次。
 
@@ -138,16 +144,16 @@ herdr agent prompt <name> '<派工內容>' --wait --timeout 60000 2>&1 | tail -5
 
 ### 授權段：派 wave / loop 一定要寫
 
-`herdr-claude-wave` 與 `herdr-codex-wave` 都是**單波審慎版**——它們的流程本來就寫著「每波開始前停下來與使用者確認範圍」。你把它派到另一個 pane 之後，那個「使用者」變成沒人：它做完一波就停在那裡問「下一波要派幾張」，而你已經交手走人了，於是整批票卡在半路。
+`herdr-claude-wave` 與 `herdr-codex-wave` 是**單波審慎版**——一次只跑一波，每波收工後很自然會停下來等人。你把它派到另一個 pane 之後，那個「人」變成沒人：它做完一波就停在那裡，而你已經交手走人了，於是整批票卡在半路。
+
+（波次怎麼組不需要授權——那兩支 skill 已經改成自己判斷：衝突小就平行、衝突大就分階段，不會問人。授權段要處理的是**做完一波之後會不會自己接著做下一波**。）
 
 **這不是那支 skill 的 bug，是派工少了一段授權。** 所以派 wave 或 loop 時，派工內容最後固定加一段：
 
 ```
 授權：
 
-- 第一波開工前，把你盤出來的波次範圍（哪幾張票、為什麼這幾張、各自碰哪些檔）
-  一次問清楚，等我確認再開工。
-- 第一波確認之後就不要再問了。之後每一波要派幾張、派哪幾張、worktree 怎麼切、
+- 不要問我波次怎麼派。每一波要派幾張、派哪幾張、worktree 怎麼切、
   什麼時候整合，全部你自己判斷，一路做到看板上沒有可動的 Todo 為止。
 - 只有這兩種情況才需要問我：
   (1) 這件事沒有一個合理的預設可選，猜錯會讓整批重做；
@@ -160,15 +166,31 @@ herdr agent prompt <name> '<派工內容>' --wait --timeout 60000 2>&1 | tail -5
   貼完直接接著做，不要等我回話。
 - **回報結尾不准是問句。** 不要寫「要我直接開嗎」「還是你先答第 1 題」——
   你已經有授權了，直接開，把問題留在清單裡等我有空回。
+
+推播：這個 session 開了 Remote Control，你可以用 PushNotification 推到我手機。
+只在這五種時機推，其餘一律不推：
+
+  (1) 真的需要我決策、而且那個決策擋住整批推進；
+  (2) 同一張票補正兩次仍不達標；
+  (3) 整合時撞到你解不掉的衝突；
+  (4) 一波收工、人工驗收頁已經開好；
+  (5) 看板上沒有可動的 Todo 了，整件事做完。
+
+一則一行、不要 markdown，開頭就寫我需要行動的那件事
+（「PROJ-13 驗收頁已開 :5174」好過「一波完成」）。
+
+**推播不是唯一管道。** PushNotification 判定我人在終端機前時會自己跳過，
+所以該講的事一律照常寫進你的 pane 輸出，推播只是加推一份。
 ```
 
 幾個寫法上的重點：
 
-- **「第一波」要講清楚是哪一次。** 寫「第一次開工前確認範圍」而不是「一開始確認一下」——後者它可能理解成每波都算「一開始」。
 - **停下來的條件要列舉，不要寫「有問題再問」。** 「有問題」對一個謹慎的 agent 來說涵蓋一切，它會照樣每波都停。
 - **「貼完直接接著做，不要等我回話」不能省。** 只寫「每波回報進度」的話，它回報完會很自然地進入等待——回報在對話裡長得就像一個問句。
 - **收斂條件要具體。** 「做到 Todo 清空」比「做完為止」好，因為前者有一個它查得到的判準（看板上還有沒有無 blocker 的 Todo）。
 - **「問題不准擋住推進」是實測打出來的補丁，不能省。** 只寫「規格歧義才問」的話，它會把任何開放式設計決定都歸進歧義，然後把**整波**停下來等你回答——即使那個決定只擋得住其中一張票。實際發生過的形狀：一波做完列出三項待決事項，其中只有一項擋住一張票，另外三張票完全可動，它仍然停在原地問「要我直接開嗎」。授權段要把「問」和「停」拆開：問可以，停不行。
+- **推播時機要列舉，不要寫「重要的事就推我」。** 「重要」對一個剛做完一波、很有成就感的 agent 來說涵蓋每一波的每一個小進展，然後你的手機整晚都在震。列五條，列完就封死。
+- **「推播不是唯一管道」那句不能省。** `PushNotification` 在判定使用者正坐在終端機前時會靜默跳過，不報錯也不重試。少了那句，它會以為推過了就不用寫進輸出，於是那個決策點在 pane 畫面上完全看不到。
 - **「回報結尾不准是問句」也不能省。** 一個把進度整理得很完整的 agent，收尾時會很自然地補一句「要我直接開嗎」——那句話一出現，它就進入等待了，前面所有授權都被那一問句抵銷掉。
 
 真的要它每波都停下來等人（例如這批票風險高、使用者想逐波看），那就**明講「每波做完停下來等我確認再開下一波」**——不要靠不寫授權段來達成，那會變成前面那種卡死。
@@ -261,16 +283,20 @@ herdr agent read <name> --source recent-unwrapped --lines 40
 
 1. **位置**：workspace / tab / pane id，配一張 ASCII 佈局圖標出新 pane 在哪
 2. **身分**：agent 名稱（或 pane id）、kind、版本或模型，以及它正在跑哪一支 skill
-3. **狀態**：現在是 working / blocked，已經走到哪一步（從畫面讀到的實際進度，不是猜的）；派 wave 的話要講明**它只會在第一波開工前問一次範圍，之後會自己跑到 Todo 清空**，讓使用者知道那一次提問要去回
-4. **盯工指令**：可直接複製貼上的三行
+3. **狀態**：現在是 working / blocked，已經走到哪一步（從畫面讀到的實際進度，不是猜的）；派 wave 的話要講明**它不會停下來問波次怎麼派，會自己一路跑到 Todo 清空**
+4. **怎麼接手**：Remote Control 一行 + 可直接複製貼上的三行
 
 ```
+已掛上 Remote Control（session 名稱 <name>）：
+  它卡住、一波收工、或全部做完時會推你手機；
+  你人不在電腦前也可以從 claude.ai / 手機 app 開這個 session 直接問進度。
+
 herdr agent focus <name>                      # 切過去看
 herdr agent read <name> --lines 60            # 這邊讀它的輸出
 herdr agent wait <name> --until blocked done  # 等它卡住或做完
 ```
 
-然後**停**。問一句「要我盯著回報，還是你自己看」，不要自作主張進入等待。
+然後**停**，直接交手。**不要問「要我盯著回報，還是你自己看」**——推播與手機問進度這兩條路已經補上那個需求，再問一次只是把主 agent 留在原地。使用者真的要你盯，他會自己說。
 
 ## 不要做的事
 
@@ -288,3 +314,6 @@ herdr agent wait <name> --until blocked done  # 等它卡住或做完
 - **不要**在派 wave / loop 時漏掉授權段。那兩支 wave skill 預設每波都會停下來問人，而你已經走了。
 - **不要**把授權段的例外條款寫成「有問題就問我」。那等於把每波都停下來的權利還給它。問題要列清單，推進不能停。
 - **不要**省略 `-- --permission-mode auto`。指揮 pane 會在半夜卡在一個權限確認上。
+- **不要**省略 `--remote-control "<name>"`。沒掛上去的話，它卡住時使用者只有回到電腦前才會發現。
+- **不要**為了 remote control 先去檢查使用者有沒有登入 claude.ai。沒登入不會讓 agent 起不來，檢查只是多一輪。
+- **不要**在交手時再問「要我盯著嗎」。推播與手機問進度已經取代那個需求。
