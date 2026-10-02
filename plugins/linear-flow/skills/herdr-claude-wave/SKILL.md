@@ -1,6 +1,6 @@
 ---
 name: herdr-claude-wave
-description: "單波審慎版：Claude 指揮、Claude Code 在 Herdr pane 裡開發，一次只跑一波，每波開始前停下來與使用者確認範圍。每張 Linear 票一個 workspace + git worktree + 一個 Claude Code pane（`--permission-mode auto`），主控 Claude 只做盤點派工、審碼把關、rebase + fast-forward 整合、以及全部的 Linear 狀態與註解。pane 是可見、可 attach、可中斷的，狀態靠 herdr agent wait 而非輪詢畫面。完工時 pane 會自動起本地 dev server、把測試頁開在使用者面前，並附一份 STE100 寫法的人工驗收清單。Use this whenever the user wants Claude Code panes doing the implementation while another Claude orchestrates and they want to watch or interrupt the panes, mentions dispatching tickets to Claude panes through Herdr, wants several tickets worked in parallel with visible terminals, or asks to resume a wave of Claude panes. Triggers: \"用 herdr 派給 claude\", \"herdr 開 claude pane\", \"claude 指揮 claude\", \"讓 claude code 在 pane 裡做\", \"開幾個 claude pane 同時做\", \"這幾張票丟 claude 平行做\", \"分波派給 claude\", \"開下一波 claude\", \"dispatch these tickets to claude panes via herdr\", \"spin up claude code panes for these issues\", \"have claude implement these in parallel panes\". 需要 HERDR_ENV=1。實作者要換成 Codex 就用 herdr-codex-wave；不要可見 pane、只要 Agent tool 就用 parallel-wave；要無人監督清空整個看板就用 linear-goal-loop。"
+description: "單波審慎版：Claude 指揮、Claude Code 在 Herdr pane 裡開發，一次只跑一波，波次組成由指揮自己判斷（平衡模式：衝突小就平行、衝突大就分階段），不拿派票問題打擾使用者。每張 Linear 票一個 workspace + git worktree + 一個 Claude Code pane（`--permission-mode auto`），主控 Claude 只做盤點派工、審碼把關、rebase + fast-forward 整合、以及全部的 Linear 狀態與註解。pane 是可見、可 attach、可中斷的，狀態靠 herdr agent wait 而非輪詢畫面。完工時 pane 會自動起本地 dev server、把測試頁開在使用者面前，並附一份 STE100 寫法的人工驗收清單。Use this whenever the user wants Claude Code panes doing the implementation while another Claude orchestrates and they want to watch or interrupt the panes, mentions dispatching tickets to Claude panes through Herdr, wants several tickets worked in parallel with visible terminals, or asks to resume a wave of Claude panes. Triggers: \"用 herdr 派給 claude\", \"herdr 開 claude pane\", \"claude 指揮 claude\", \"讓 claude code 在 pane 裡做\", \"開幾個 claude pane 同時做\", \"這幾張票丟 claude 平行做\", \"分波派給 claude\", \"開下一波 claude\", \"dispatch these tickets to claude panes via herdr\", \"spin up claude code panes for these issues\", \"have claude implement these in parallel panes\". 需要 HERDR_ENV=1。實作者要換成 Codex 就用 herdr-codex-wave；不要可見 pane、只要 Agent tool 就用 parallel-wave；要無人監督清空整個看板就用 linear-goal-loop。"
 ---
 
 # Herdr Claude Wave —— Claude 指揮、Claude Code 在 pane 裡開發
@@ -40,11 +40,30 @@ herdr integration status | grep claude
 
 ---
 
-## 1. 盤點與波次組成
+## 1. 盤點與波次組成（自己決定，不要問使用者）
 
-依 `parallel-wave` 第 1 步做兩層判斷（依賴關係硬條件、共用檔衝突軟條件），然後**用 AskUserQuestion 一次問完波次範圍與其他待決事項**，附推薦選項。
+依 `parallel-wave` 第 1 步做兩層判斷（依賴關係硬條件、共用檔衝突軟條件）。**但不要照它結尾那句「把選項丟給使用者選」做——波次怎麼組是你的判斷，不是使用者的決策點。** 掃完熱點就直接定案開工。
 
-Herdr 版要多想一件事：**pane 是可見的，所以波次大小的上限是「使用者還看得過來幾個」**，不只是機器負載。三到四個是實務上的舒適上限。
+一律採**平衡模式**，規則只有一條：
+
+| 共用檔衝突程度 | 怎麼派 |
+| --- | --- |
+| 低／中（純新增檔案，或只動 append-only 清單如 DI 註冊、路由表、i18n 條目） | **同波平行**，並在派工指令裡下衝突紀律（只往檔尾追加、註解標區塊、只改最小必要行數、不准順手重排） |
+| 高（會改同一個檔的同一段邏輯、同一個函式、同一個窮盡式 switch） | **分階段**，拆到下一波，絕不同波 |
+
+不確定算中還是高時，當成高、拆開做。一波重做的成本遠高於多跑一波。
+
+波次大小上限是**三到四個 pane**：pane 是可見的，超過使用者就看不過來了。可平行的票多於這個數就排進下一波，依序推進。
+
+定案後**直接開工，不要跳 AskUserQuestion 確認範圍**。把判斷結果用一段話講出來就好，讓使用者有機會中斷，但不要停下來等回覆：
+
+```
+〔第 1 波〕PROJ-61、PROJ-63 平行（各自新增檔案，無共用檔交集）
+         PROJ-62 排下一波（與 PROJ-61 同改 authStore.ts 同一段，衝突高）
+         PROJ-64 排下一波（blocked by PROJ-61）
+```
+
+**還是要問使用者的只有這些**（都不是派票問題）：base 分支有未預期改動怎麼處理、dev server 指令推斷不出來、票券規格本身有歧義。這些該問就問，一次問完。
 
 ---
 
@@ -91,7 +110,7 @@ done
 
 設定檔清單列了已不存在的檔案時，**回報使用者並提議修正設定**，不要默默跳過。
 
-**5. 決定人工驗收要怎麼開頁，並分配 port。** 讀專案 `.claude/linear-workflow.json` 的 `manualVerification` 區塊（`devCommand`、`baseUrl`、`portBase`、`preflight`、`loginHint`）。沒有那個區塊就從 `package.json` / `Makefile` 推斷，**併進第 1 步那次 AskUserQuestion 一起問**，收工時提議回寫設定檔。
+**5. 決定人工驗收要怎麼開頁，並分配 port。** 讀專案 `.claude/linear-workflow.json` 的 `manualVerification` 區塊（`devCommand`、`baseUrl`、`portBase`、`preflight`、`loginHint`）。沒有那個區塊就從 `package.json` / `Makefile` 推斷，**併進第 1 步結尾那批非派票提問一起問**，收工時提議回寫設定檔。
 
 **port 由你分配，不能讓 pane 自己挑**：`portBase + 波內序號`（第一張 5173、第二張 5174⋯）。兩個 pane 撞同一個 port 時，使用者看到的畫面會屬於錯的那張票——而那個畫面「看起來是對的」，是最難察覺的一種錯。分配結果寫進派工指令。
 
@@ -335,6 +354,7 @@ worktree 則要等使用者回報驗收結果，因為 worktree 一刪，dev ser
 | 把 `wait` 返回當成完工 | `auto` 模式下 `blocked` 也會讓 wait 返回；一律 `herdr agent list` 對帳 |
 | 照設定檔把全部閘門掛上 | 設定檔常與現實脫節；每個 pane 都會撞到不是自己造成的紅燈 |
 | 把票券描述複製進派工指令 | 燒你的 context，而且票是唯一權威；pane 有 Linear MCP 就讓它自己讀 |
+| 停下來問使用者「這波要怎麼派」 | 波次組成是你掃完衝突熱點就該定案的事；問等於把判斷推回去，使用者也沒有比你更多的資訊 |
 | 沒叫 pane 讀上一波的解鎖註解 | 白白丟掉分波推進最大的複利 |
 | 用 `sleep` 或反覆讀畫面判斷完工 | 有 `herdr agent wait` + `Monitor` 就不必猜 |
 | 分開送 pane 的啟動與派工訊息 | 會變成串行，白費整個 skill 的意義 |
