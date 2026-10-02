@@ -221,8 +221,15 @@ skill 必須放在 user 層級。原因是：實作 pane 的工作目錄是 work
 3. **多輪訪談**。它一題一題問你，逼出決策。
 4. 寫規格書。
 5. 拆成垂直切片的票，並實際建票。
+6. 問你要不要現在就派工。
 
 建票時會一併設定 blockedBy 依賴、Project 歸屬、Blocked 狀態。
+
+### 建完票會接著問派工
+
+票建好之後，它會主動問一次要不要現在開一個 Herdr pane 把這批票派下去，選項是 `herdr-claude-wave`（預設推薦）、`herdr-codex-wave`、`linear-goal-loop`、或先不用。選了就幫你呼叫 `/herdr:create-herdr-wave-agent`，並把票號、依賴順序、規格書路徑、Project 一起帶給新 pane。
+
+不在 Herdr 環境（沒有 `HERDR_ENV=1`）時這一步安靜跳過，`draft` 模式也不會問。
 
 ### 使用方式
 

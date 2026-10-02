@@ -1,6 +1,6 @@
 ---
 name: grill-to-linear
-description: "把一個還很模糊的需求，經過多輪逐題訪談逼出決策，寫成規格書，再拆成一張張垂直切片的 Linear 議題並實際建票（含 blockedBy 依賴、Project 歸屬、Blocked 狀態）。Use this whenever the user has a feature idea, requirement, or plan that needs to become Linear issues — even if they only say 'help me break this down' or 'open some tickets for this'. Triggers: \"幫我拆成 linear 卡片\", \"這個需求開票\", \"訪談我然後拆票\", \"先問清楚再拆 linear\", \"把這個功能拆成票\", \"這輪要做的東西拆一拆上 linear\", \"規格談完幫我開票\", \"break this into linear issues\", \"grill me then create the linear tickets\", \"turn this feature into issues on linear\", \"plan this out and open the issues\". 帶參數 draft 時只拆到草稿，不建票。"
+description: "把一個還很模糊的需求，經過多輪逐題訪談逼出決策，寫成規格書，再拆成一張張垂直切片的 Linear 議題並實際建票（含 blockedBy 依賴、Project 歸屬、Blocked 狀態），建完票再主動問要不要開 Herdr pane 直接派工。Use this whenever the user has a feature idea, requirement, or plan that needs to become Linear issues — even if they only say 'help me break this down' or 'open some tickets for this'. Triggers: \"幫我拆成 linear 卡片\", \"這個需求開票\", \"訪談我然後拆票\", \"先問清楚再拆 linear\", \"把這個功能拆成票\", \"這輪要做的東西拆一拆上 linear\", \"規格談完幫我開票\", \"break this into linear issues\", \"grill me then create the linear tickets\", \"turn this feature into issues on linear\", \"plan this out and open the issues\". 帶參數 draft 時只拆到草稿，不建票也不問派工。"
 ---
 
 # grill-to-linear
@@ -14,7 +14,7 @@ description: "把一個還很模糊的需求，經過多輪逐題訪談逼出決
 | 呼叫 | 行為 |
 | --- | --- |
 | 無參數 | 訪談 → 規格書 → 拆票草稿 → 使用者確認 → **實際建票** |
-| 帶 `draft` | 走到拆票草稿為止，**一張票都不建**。使用者想先看拆法再決定要不要上 Linear。 |
+| 帶 `draft` | 走到拆票草稿為止，**一張票都不建**，也不問派工。使用者想先看拆法再決定要不要上 Linear。 |
 
 ## 階段 0：讀設定，沒有就停
 
@@ -231,6 +231,31 @@ save_issue({ id: "PROJ-62", blockedBy: ["PROJ-61"] })
 
 規格書：.claude/report/2026_08_09/登入流程改版-規格書.md
 ```
+
+### 5.6 問要不要直接派工
+
+票建好了，但票不會自己動。這一步是把「規劃」接到「開工」之間那道縫補起來——**不要只是回報完就停住**，主動問一次要不要現在就開一個 Herdr pane 把這批票派下去。
+
+先確認環境：`echo "${HERDR_ENV:-}"`。不是 `1` 就**安靜跳過這一步**，當作回報完就結束，不要提 Herdr、不要解釋為什麼不問。
+
+是 `1` 的話，用 AskUserQuestion 問一題（不要用純文字問，選項要可以點）：
+
+| 選項 | 派什麼 |
+| --- | --- |
+| 開 pane 跑 `herdr-claude-wave`（推薦） | Claude Code 在 pane 裡實作，一次一波，每波前確認範圍 |
+| 開 pane 跑 `herdr-codex-wave` | 改由 Codex CLI 在 pane 裡實作 |
+| 開 pane 跑 `linear-goal-loop` | 無人監督，一路把這批票做到收斂 |
+| 先不用，我自己來 | 什麼都不做，結束 |
+
+選了前三個就呼叫 `/herdr:create-herdr-wave-agent`，把這次的脈絡一起帶過去，不要讓新 pane 從零重讀看板：
+
+- 要跑的 skill 名稱（照使用者選的那支）
+- 這批票的票號與標題，依賴順序照 5.5 的排法
+- 規格書路徑
+- Project 名稱（有建的話）
+- 哪幾張是 Todo 可立即開工、哪幾張還 Blocked
+
+選「先不用」就不要再追問第二次。
 
 ## 不要做的事
 
