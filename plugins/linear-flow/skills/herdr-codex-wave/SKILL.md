@@ -1,6 +1,6 @@
 ---
 name: herdr-codex-wave
-description: "Claude 指揮、Codex 在 Herdr pane 裡開發：每張 Linear 票一個 workspace + git worktree + 一個 Yolo Mode 的 Codex CLI pane，Claude 只做盤點派工、審碼把關、rebase + fast-forward 整合、以及全部的 Linear 狀態與註解。Codex 讀得到 Linear MCP，所以由它自己讀票；pane 是可見、可 attach、可中斷的，狀態靠 herdr agent wait 而非輪詢畫面。完工時 pane 會自動起本地 dev server、把測試頁開在使用者面前，並附一份 STE100 寫法的人工驗收清單。Use this whenever the user wants Codex doing the implementation while Claude orchestrates and they want to watch or interrupt the panes, mentions dispatching tickets to Codex through Herdr, wants several tickets worked in parallel with visible terminals, or asks to resume a wave of Codex panes. Triggers: \"用 herdr 派給 codex\", \"herdr 開 codex\", \"codex yolo mode 跑票\", \"讓 codex 在 pane 裡做\", \"開幾個 codex pane 同時做\", \"這幾張票丟 codex 平行做\", \"claude 指揮 codex 用 herdr\", \"分波派給 codex\", \"開下一波 codex\", \"dispatch these tickets to codex via herdr\", \"spin up codex panes for these issues\", \"have codex implement these in parallel panes\". 需要 HERDR_ENV=1 與 codex CLI。想用 Claude subagent 而非 Codex 就用 parallel-wave；實作者要換成 Claude Code pane 就用 herdr-claude-wave。"
+description: "Claude 指揮、Codex 在 Herdr pane 裡開發：每張 Linear 票一個 workspace + git worktree + 一個 Yolo Mode 的 Codex CLI pane，Claude 只做盤點派工、審碼把關、rebase + fast-forward 整合、全部的 Linear 狀態與註解，以及分支／pane／worktree 的分時回收（合併即收分支、審完碼即收 pane、worktree 等驗收，沒回就在下一波開工前補收）。Codex 讀得到 Linear MCP，所以由它自己讀票；pane 是可見、可 attach、可中斷的，狀態靠 herdr agent wait 而非輪詢畫面。完工時 pane 會自動起本地 dev server、把測試頁開在使用者面前，並附一份 STE100 寫法的人工驗收清單。Use this whenever the user wants Codex doing the implementation while Claude orchestrates and they want to watch or interrupt the panes, mentions dispatching tickets to Codex through Herdr, wants several tickets worked in parallel with visible terminals, or asks to resume a wave of Codex panes. Triggers: \"用 herdr 派給 codex\", \"herdr 開 codex\", \"codex yolo mode 跑票\", \"讓 codex 在 pane 裡做\", \"開幾個 codex pane 同時做\", \"這幾張票丟 codex 平行做\", \"claude 指揮 codex 用 herdr\", \"分波派給 codex\", \"開下一波 codex\", \"dispatch these tickets to codex via herdr\", \"spin up codex panes for these issues\", \"have codex implement these in parallel panes\". 需要 HERDR_ENV=1 與 codex CLI。想用 Claude subagent 而非 Codex 就用 parallel-wave；實作者要換成 Claude Code pane 就用 herdr-claude-wave。"
 ---
 
 # Herdr Codex Wave —— Claude 指揮、Codex 在 pane 裡開發
@@ -37,7 +37,36 @@ herdr integration status | grep -A1 codex
 
 ---
 
-## 1. 盤點與波次組成（自己決定，不要問使用者）
+## 1. 收遺留、盤點、組波次（波次組成自己決定，不要問使用者）
+
+**開工前先收上一波的遺留。** 這一步排在盤點之前，因為沒收乾淨的 worktree 會讓 `git worktree list` 與側欄都變髒，接下來的判斷跟著失真。
+
+```bash
+git -C "$MAIN" worktree list
+git -C "$MAIN" branch --merged
+herdr workspace list
+```
+
+逐個 worktree 判斷，**判準是票的狀態加分支的合併狀態，不是使用者有沒有回你**：
+
+| 情況 | 動作 |
+| --- | --- |
+| 票已 Done（或設定檔的終態）且分支已併入 base | **收掉**：`kill $(cat <worktree>/.dev-server.pid)` → `herdr worktree remove --workspace <ws id>`（workspace 已關就 `git worktree remove <path>`） |
+| 票已 Done 但分支還沒併入 base | **留著**，停下來查為什麼沒合進去，這是真的有東西沒做完 |
+| 票還在 In Review／In Progress | **留著**，那是還在進行中的票 |
+| 已合併卻還留著的分支 | `git -C "$MAIN" branch -d <branch>` |
+| 票已 Done、對應 pane 還開著 | `herdr workspace close <ws id>` |
+
+收完用一兩行講掉，不要展開：
+
+```
+〔開工前清理〕收了 PROJ-11 的 worktree 與 :5174、刪了 2 條已合併分支、關了 1 個 pane
+             PROJ-12 的 worktree 留著（票還在 In Review）
+```
+
+**不要為了「使用者還沒說驗完」而把已經 Done 又已合併的 worktree 留到下一波。** 票推到 Done 的那一刻你已經審過碼、跑過閘門、確認過註解，驗收頁的作用已經結束了；繼續留著只會一波一波堆成幾十個 worktree，而使用者永遠不會想起來要回那一句。
+
+---
 
 依 `parallel-wave` 第 1 步做兩層判斷（依賴關係硬條件、共用檔衝突軟條件）。**但不要照它結尾那句「把選項丟給使用者選」做——波次怎麼組是你的判斷，不是使用者的決策點。** 掃完熱點就直接定案開工。
 
@@ -231,9 +260,17 @@ git stash pop
 
 **解鎖註解是這個工作流的複利引擎，值得寫厚一點。** 下一波的 pane 會被指示去讀它。要寫：現在可以直接用什麼（具體檔案路徑與匯出名稱、可以照抄的既有實作）、**該避開的坑**（你審碼時發現的邊界、效能特性、會誤觸的機制）、以及**上游有哪些未驗證項目**（讓下一張票知道遇到問題時該不該歸因給自己）。
 
-**合併成功就立刻回收分支；只有 worktree 的時機被人工驗收綁住。**
+### 回收：三樣東西三個時機，不要綁在一起
 
-ff merge 一成功，先把分支收掉——它跟 dev server 無關，留著只會讓 `git branch` 越積越髒，下一波盤點時分不清哪些是活的：
+這是實測最常漏的一段。**把「分支」「pane／workspace」「worktree」綁成同一個動作，結果就是三樣一起卡在等驗收，永遠不收。** 分開處理：
+
+| 要收的東西 | 什麼時候收 | 為什麼是這個時機 |
+| --- | --- | --- |
+| 分支 | ff merge 一成功 | 跟 dev server 無關，留著只會讓 `git branch` 越積越髒 |
+| pane／workspace | 審碼 + `RESULT.md` + Linear 註解三項都確認完 | **dev server 是 `nohup` 起的，關 pane 不會殺掉它**，驗收頁照常活著 |
+| worktree + dev server | 使用者回報驗收結果之後 | worktree 一刪 cwd 就消失，使用者手上的頁面當場壞掉 |
+
+**分支：**
 
 ```bash
 git -C "$MAIN" branch -d <branch>
@@ -241,9 +278,27 @@ git -C "$MAIN" branch -d <branch>
 
 **用 `-d` 不用 `-D`。** `-d` 在分支尚未完全併入 base 時會拒絕，那正是最後一道保險：拒絕就代表你以為合進去的東西其實沒進去。被拒就**保留分支**、停下來查為什麼，並在收工回報講明哪一條沒收、原因是什麼——不要改用 `-D` 硬刪。
 
-worktree 則要等使用者回報驗收結果，因為 worktree 一刪，dev server 的 cwd 就消失、使用者手上的頁面當場壞掉。順序是：使用者回覆 → `kill $(cat <worktree>/.dev-server.pid)` → `herdr worktree remove --workspace <ws id>`（同時移除 worktree 與 workspace；失敗就退回 `git worktree remove <path>` + `herdr workspace close <id>`）。
+**pane／workspace：**
 
-使用者一直沒回就把 worktree 留著，並在收工回報講明「PROJ-111 的 worktree 與 :5174 還開著，驗完說一聲我來收」——**分支這時已經收掉了，不在待辦裡。** 其餘不需要開頁的票（純 CLI／library）維持原則：合併完立刻照 `kill server → worktree → branch -d` 一路收乾淨，別堆積。
+```bash
+herdr workspace close <ws id>
+```
+
+三項確認（diff 審過、`RESULT.md` 有人工驗收清單、票上有實作紀錄註解）**全部過了就關，不要陪著等驗收**。pane 留著唯一的用途是 `herdr agent prompt` 叫它補東西，而那三項過了就沒東西要補了。留著的代價是側欄一波一波堆，下一波分不清哪個 pane 是活的。
+
+有一項沒過就**先別關**——關掉之後 `RESULT.md` 與它的 context 就都沒了，補不回來。
+
+**worktree + dev server：** 使用者回覆 → `kill $(cat <worktree>/.dev-server.pid)` → `herdr worktree remove --workspace <ws id>`（workspace 已經關掉的話退回 `git worktree remove <path>`）。
+
+不需要開頁的票（純 CLI／library）沒有這個等待：合併完立刻 `branch -d → workspace close → worktree remove` 一路收乾淨。
+
+### 使用者沒回驗收：下一波開工前補收，不要無限期留著
+
+「使用者一直沒回就留著」是真的，但**留著不等於忘了**。那份待收清單要帶到下一波——回收閘門在第 1 步，見下。
+
+收工回報固定講一句：「PROJ-111 的 worktree 與 :5174 還開著，驗完說一聲，不然我下一波開工前會自己收。」**分支與 pane 這時已經收掉了，不在待辦裡。**
+
+**最後一波沒有「下一波」，閘門不會再跑。** 所以 Todo 清空、整件事收尾的那一次，要**當場把已 Done 且已合併的 worktree 全部收掉**，再回報。收尾還留著東西的話要逐項講明為什麼留（票沒 Done、分支沒合、使用者明說要留），不要只寫「還有幾個 worktree 開著」。
 
 ---
 
@@ -256,6 +311,8 @@ worktree 則要等使用者回報驗收結果，因為 worktree 一刪，dev ser
 需要使用者親自做的事要單獨點出來（外部主控台設定、憑證、`wrangler secret put` 這類營運動作），因為程式碼這側做不到。
 
 **人工驗收清單也屬於這一類，而且它是每一波都會有的那一項。** 收工回報要講清楚：測試頁開在哪些網址、每張票幾項、還有哪些 worktree 因為等驗收而留著。
+
+**留著的東西要連「什麼時候會自己消失」一起講**——「驗完說一聲，不然我下一波開工前會自己收」。只寫「worktree 還開著」的話，使用者會以為那是要他動手的待辦，於是兩邊都在等對方。
 
 發現值得記住的專案特定坑就寫進記憶，下次不用再撞一遍。
 
@@ -281,6 +338,10 @@ worktree 則要等使用者回報驗收結果，因為 worktree 一刪，dev ser
 | **pane 做完就結束，不開測試頁也不給驗收清單** | 瀏覽器層零自動守門，這張票的畫面等於零驗證進 base，而綠燈會讓人以為驗過了 |
 | 讓 pane 自己挑 port | 兩個 pane 撞同一個 port，使用者看到的畫面會屬於錯的那張票，而那個畫面「看起來是對的」 |
 | 驗收還沒回覆就 `git worktree remove` | server 的 cwd 消失，使用者手上的頁面當場壞掉 |
+| 把分支、pane、worktree 綁成同一個收尾動作 | 三樣一起卡在等驗收。分支合併即收、pane 審完碼即收、只有 worktree 等驗收 |
+| 審完碼卻讓 pane 陪著等驗收 | dev server 是 `nohup` 起的，關 pane 不會影響驗收頁；留著只會讓側欄一波一波堆 |
+| 「使用者沒回驗收」就把 worktree 無限期留著 | 使用者永遠不會想起來回那一句。票已 Done 且分支已合就該收，判準是票的狀態不是使用者的回覆 |
+| 最後一波收尾沒收 worktree | 閘門在「下一波開工前」，而最後一波沒有下一波。收尾那次要當場收乾淨 |
 | 合併成功卻把票分支留著 | 分支會一波一波累積，下次盤點分不清哪條是活的；`branch -d` 是合併流程的一部分，不是善後 |
 | `branch -d` 被拒就改用 `-D` | 被拒代表東西其實沒完全進 base，強刪會讓那份成果永久消失。停下來查，別繞過保險 |
 | 把 pane 寫的清單摘要成「請驗一下 X 功能」 | 精確步驟是清單的全部價值，摘要掉就等於沒寫 |
