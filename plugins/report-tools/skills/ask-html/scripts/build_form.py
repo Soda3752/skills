@@ -42,9 +42,6 @@ def validate(data):
         for j, o in enumerate(opts, 1):
             if not isinstance(o, dict) or not str(o.get("label", "")).strip():
                 fail(f"Q{i} 第 {j} 個選項缺少 label")
-            missing = [k for k in ("effect", "cost") if not str(o.get(k, "")).strip()]
-            if missing:
-                print(f"[build_form] 警告：Q{i} 選項「{o['label']}」沒寫 {'/'.join(missing)}", file=sys.stderr)
         if not q.get("multi") and sum(1 for o in opts if o.get("recommended")) > 1:
             print(f"[build_form] 警告：Q{i} 是單選題卻標了多個推薦", file=sys.stderr)
 

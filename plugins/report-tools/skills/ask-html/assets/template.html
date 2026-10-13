@@ -143,7 +143,7 @@
   .opt-desc { color: var(--muted); font-size: 14px; font-weight: 400; margin-left: 10px; }
 
   /* 「選了之後／代價」各一行：小色塊標籤 + 文字 */
-  /* 右上角切換：預設收起，點了才展開這題所有選項的行為與代價 */
+  /* 右上角切換：預設收起，點了才展開這題所有選項的補充說明（選了之後／代價） */
   .tradeoff-toggle {
     position: absolute; top: 20px; right: 24px;
     font: inherit; font-size: 13px;
@@ -170,7 +170,7 @@
   .tradeoff .tag.cost { background: var(--bad-soft); color: var(--bad); }
   .tradeoff .txt { color: var(--text); }
 
-  /* ── 補充說明 ── */
+  /* ── 其他想法輸入框 ── */
   .note { margin-top: 14px; }
   .note label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
   .note textarea {
@@ -291,6 +291,7 @@
 <footer class="bottom">
   <div class="bottom-inner">
     <span class="status" id="status">作答完按「複製所有答案」，回 Claude Code 貼上即可。</span>
+    <button class="ghost" id="clear-btn" type="button">清除作答</button>
     <button class="ghost" id="preview-btn" type="button">預覽文字</button>
     <button class="copy" id="copy-btn" type="button">複製所有答案</button>
   </div>
@@ -350,12 +351,12 @@
     if (multi) meta.appendChild(el("span", "multi-tag", "可複選"));
     sec.appendChild(meta);
     if (opts.some(function (o) { return o.effect || o.cost; })) {
-      const tg = el("button", "tradeoff-toggle", "顯示行為與代價 ▾");
+      const tg = el("button", "tradeoff-toggle", "顯示補充說明 ▾");
       tg.type = "button";
       tg.setAttribute("aria-expanded", "false");
       tg.addEventListener("click", function () {
         const open = sec.classList.toggle("show-tradeoff");
-        tg.textContent = open ? "收起行為與代價 ▴" : "顯示行為與代價 ▾";
+        tg.textContent = open ? "收起補充說明 ▴" : "顯示補充說明 ▾";
         tg.setAttribute("aria-expanded", String(open));
       });
       sec.appendChild(tg);
@@ -375,7 +376,7 @@
           // 單選題再點一次已選的選項 = 取消選取
           label.addEventListener("pointerdown", function () { input.dataset.was = input.checked ? "1" : ""; });
           input.addEventListener("click", function () {
-            if (input.dataset.was === "1") { input.checked = false; input.dataset.was = ""; refresh(); }
+            if (input.dataset.was === "1") { input.checked = false; input.dataset.was = ""; onChange(); }
           });
         }
         label.appendChild(input);
@@ -409,12 +410,12 @@
       sec.appendChild(list);
     }
 
-    // 補充說明：每題一律展開，可以直接填
+    // 其他想法輸入框：每題一律展開，可以直接填
     const note = el("div", "note");
     const ta = document.createElement("textarea");
     ta.id = "note-" + qi;
     ta.placeholder = q.placeholder || (opts.length ? "可留空；都不是你要的，就直接寫你的想法" : "");
-    const nl = el("label", null, opts.length ? "補充說明（選填）" : "你的回答");
+    const nl = el("label", null, opts.length ? "其他想法（選填）" : "你的回答");
     nl.htmlFor = ta.id;
     note.appendChild(nl);
     note.appendChild(ta);
@@ -564,8 +565,46 @@
   dlg.addEventListener("mousedown", function (e) { downOnBackdrop = e.target === dlg; });
   dlg.addEventListener("click", function (e) { if (downOnBackdrop && e.target === dlg) dlg.close(); downOnBackdrop = false; });
 
-  root.addEventListener("change", refresh);
-  root.addEventListener("input", refresh);
+  // ── 暫存作答：存在這個檔案自己的 localStorage，關掉分頁重開答案還在 ──
+  const STORE_KEY = "ask-html:" + location.pathname + ":" + (data.title || "");
+
+  function save() {
+    const rows = collect();
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify({
+        picked: rows.map(function (r) { return r.picked; }),
+        notes: rows.map(function (r) { return r.note; })
+      }));
+    } catch (e) { /* 私密視窗或被封鎖時就不暫存 */ }
+  }
+
+  function restore() {
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem(STORE_KEY) || "null"); } catch (e) { saved = null; }
+    if (!saved || !Array.isArray(saved.picked) || saved.picked.length !== total) return false;
+    saved.picked.forEach(function (list, qi) {
+      (list || []).forEach(function (oi) {
+        const input = document.querySelector('input[name="q' + qi + '"][value="' + oi + '"]');
+        if (input) input.checked = true;
+      });
+      const ta = document.getElementById("note-" + qi);
+      if (ta && saved.notes && saved.notes[qi]) ta.value = saved.notes[qi];
+    });
+    return saved.picked.some(function (l) { return l && l.length; }) || (saved.notes || []).some(Boolean);
+  }
+
+  document.getElementById("clear-btn").addEventListener("click", function () {
+    root.querySelectorAll("input").forEach(function (i) { i.checked = false; });
+    root.querySelectorAll("textarea").forEach(function (t) { t.value = ""; });
+    try { localStorage.removeItem(STORE_KEY); } catch (e) { /* 忽略 */ }
+    refresh();
+    setStatus("已清除所有作答。");
+  });
+
+  function onChange() { refresh(); save(); }
+  root.addEventListener("change", onChange);
+  root.addEventListener("input", onChange);
+  if (restore()) setStatus("已帶回上次的作答。按「清除作答」可以重來。");
   refresh();
 })();
 </script>
