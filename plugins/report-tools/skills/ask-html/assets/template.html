@@ -88,6 +88,7 @@
 
   /* ── 題目 ── */
   section.q {
+    position: relative;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 16px;
@@ -100,7 +101,7 @@
   section.q.answered:focus-within,
   section.q.answered.current { opacity: 1; }
 
-  .q-meta { font-size: 13px; color: var(--faint); margin-bottom: 8px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .q-meta { font-size: 13px; color: var(--faint); margin-bottom: 8px; padding-right: 170px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
   .q-meta .topic { color: var(--accent); font-weight: 600; }
   .q-meta .multi-tag { padding: 0 8px; border-radius: 99px; background: #f0f2f5; color: var(--muted); font-size: 12px; }
   .q-title { font-size: 22px; line-height: 1.45; font-weight: 700; margin: 0 0 6px; }
@@ -142,7 +143,19 @@
   .opt-desc { color: var(--muted); font-size: 14px; font-weight: 400; margin-left: 10px; }
 
   /* 「選了之後／代價」各一行：小色塊標籤 + 文字 */
-  .tradeoff {
+  /* 右上角切換：預設收起，點了才展開這題所有選項的行為與代價 */
+  .tradeoff-toggle {
+    position: absolute; top: 20px; right: 24px;
+    font: inherit; font-size: 13px;
+    padding: 4px 12px;
+    border: 1px solid var(--border); border-radius: 99px;
+    background: #fff; color: var(--muted);
+    cursor: pointer;
+  }
+  .tradeoff-toggle:hover { border-color: var(--border-strong); color: var(--text); }
+  section.q.show-tradeoff .tradeoff-toggle { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+  .tradeoff { display: none; }
+  section.q.show-tradeoff .tradeoff {
     display: grid; grid-template-columns: auto 1fr; gap: 4px 10px;
     margin: 6px 0 0 34px;
     font-size: 14px; line-height: 1.6;
@@ -211,7 +224,8 @@
     .mobile-progress .bar > i { display: block; height: 100%; width: 0; background: var(--accent); }
     section.q { padding: 24px 18px 20px; margin-bottom: 28px; }
     .q-title { font-size: 20px; }
-    .tradeoff { margin-left: 0; }
+    section.q.show-tradeoff .tradeoff { margin-left: 0; }
+    .tradeoff-toggle { top: 16px; right: 14px; }
     footer.bottom { left: 0; padding: 10px 16px; }
     .bottom-inner .status { flex-basis: 100%; font-size: 13px; }
     .bottom-inner button { flex: 1; }
@@ -290,6 +304,17 @@
     meta.appendChild(el("span", null, "Q" + (qi + 1) + " / " + total));
     if (multi) meta.appendChild(el("span", "multi-tag", "可複選"));
     sec.appendChild(meta);
+    if (opts.some(function (o) { return o.effect || o.cost; })) {
+      const tg = el("button", "tradeoff-toggle", "顯示行為與代價 ▾");
+      tg.type = "button";
+      tg.setAttribute("aria-expanded", "false");
+      tg.addEventListener("click", function () {
+        const open = sec.classList.toggle("show-tradeoff");
+        tg.textContent = open ? "收起行為與代價 ▴" : "顯示行為與代價 ▾";
+        tg.setAttribute("aria-expanded", String(open));
+      });
+      sec.appendChild(tg);
+    }
     sec.appendChild(el("h2", "q-title", q.question));
     if (q.context) sec.appendChild(el("p", "q-context", q.context));
 
