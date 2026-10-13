@@ -1,5 +1,5 @@
 ---
-name: question-form
+name: ask-html
 description: 當 Claude 有大量問題要問使用者（超過 4 題，AskUserQuestion 一次塞不下）時，改把所有問題產成一個本地 HTML 表單並用瀏覽器打開：每題列出 A/B/C 選項卡片，每個選項寫清楚「說明／選了之後會發生什麼／代價」，標出推薦選項，支援複選題與作答進度條，每題底下都有補充輸入框，頁面底部一顆「複製所有答案」按鈕，使用者複製後貼回 Claude Code 即可。Use this whenever you need to ask the user more than 4 questions at once — spec confirmation, requirement interviews, design decisions, migration choices — instead of splitting them into several AskUserQuestion rounds. Also use when the user explicitly asks for a form. Triggers: "問題太多用表單", "開個網頁讓我填", "用 HTML 問我", "做一份問卷給我選", "把問題整理成表單", "一次問完", "question form", "make me a form to answer these", "ask me with an html page", "too many questions, put them in a page"。4 題以內照舊用 AskUserQuestion。
 ---
 
@@ -49,7 +49,7 @@ python3 "<這支 skill 的 base directory>/scripts/build_form.py" "<scratchpad>/
 `<這支 skill 的 base directory>` 是載入這支 skill 時系統告訴你的路徑。**不要用 `$CLAUDE_PLUGIN_ROOT`**，它在主 session 是空的。找不到時：
 
 ```bash
-SCRIPT=$(find ~/.claude/plugins -path '*/question-form/scripts/build_form.py' | sort | tail -1)
+SCRIPT=$(find ~/.claude/plugins -path '*/ask-html/scripts/build_form.py' | sort | tail -1)
 python3 "${SCRIPT}" "<scratchpad>/questions.json"
 ```
 
