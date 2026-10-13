@@ -153,16 +153,7 @@
 
   /* ── 補充說明 ── */
   .note { margin-top: 20px; }
-  .note-toggle {
-    font: inherit; font-size: 14px;
-    background: none; border: 0; padding: 4px 0;
-    color: var(--accent); cursor: pointer;
-  }
-  .note-toggle:hover { text-decoration: underline; }
-  .note-body { display: none; }
-  .note.open .note-toggle { display: none; }
-  .note.open .note-body { display: block; }
-  .note-body label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .note label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
   .note textarea {
     width: 100%; min-height: 72px; resize: vertical;
     font: inherit; font-size: 15px;
@@ -346,23 +337,15 @@
       sec.appendChild(list);
     }
 
-    // 補充說明：有選項時預設收合，純輸入題一律展開
-    const note = el("div", "note" + (opts.length ? "" : " open"));
+    // 補充說明：每題一律展開，可以直接填
+    const note = el("div", "note");
     const ta = document.createElement("textarea");
     ta.id = "note-" + qi;
-    ta.placeholder = q.placeholder || "";
-    if (opts.length) {
-      const btn = el("button", "note-toggle", "＋ 補充說明，或都不是我要的");
-      btn.type = "button";
-      btn.addEventListener("click", function () { note.classList.add("open"); ta.focus(); });
-      note.appendChild(btn);
-    }
-    const body = el("div", "note-body");
+    ta.placeholder = q.placeholder || (opts.length ? "可留空；都不是你要的，就直接寫你的想法" : "");
     const nl = el("label", null, opts.length ? "補充說明（選填）" : "你的回答");
     nl.htmlFor = ta.id;
-    body.appendChild(nl);
-    body.appendChild(ta);
-    note.appendChild(body);
+    note.appendChild(nl);
+    note.appendChild(ta);
     sec.appendChild(note);
 
     root.appendChild(sec);
