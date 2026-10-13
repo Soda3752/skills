@@ -140,10 +140,9 @@
   .opt-desc { grid-column: 2; color: var(--muted); font-size: 15px; margin-top: 2px; }
 
   .tradeoff {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
-    margin: 16px 0 0 38px;
+    display: flex; flex-direction: column; gap: 8px;
+    margin: 14px 0 0 38px;
   }
-  .tradeoff.single { grid-template-columns: 1fr; }
   .tradeoff .box { border-radius: 10px; padding: 10px 14px; font-size: 14px; line-height: 1.65; }
   .tradeoff .box h4 { margin: 0 0 4px; font-size: 12px; font-weight: 700; letter-spacing: .04em; }
   .tradeoff .effect { background: var(--good-soft); }
@@ -214,7 +213,7 @@
     .mobile-progress .bar > i { display: block; height: 100%; width: 0; background: var(--accent); }
     section.q { padding: 24px 18px 20px; margin-bottom: 28px; }
     .q-title { font-size: 20px; }
-    .tradeoff { grid-template-columns: 1fr; margin-left: 0; }
+    .tradeoff { margin-left: 0; }
     footer.bottom { padding: 10px 16px; }
     .bottom-inner .status { flex-basis: 100%; font-size: 13px; }
     .bottom-inner button { flex: 1; }
@@ -325,7 +324,7 @@
         card.appendChild(head);
 
         if (o.effect || o.cost) {
-          const tr = el("div", "tradeoff" + (o.effect && o.cost ? "" : " single"));
+          const tr = el("div", "tradeoff");
           if (o.effect) {
             const b = el("div", "box effect");
             b.appendChild(el("h4", null, "選了之後"));
