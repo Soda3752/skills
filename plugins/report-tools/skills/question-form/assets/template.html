@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__TITLE__</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f5f6f8;
+    --surface: #ffffff;
+    --text: #1d2129;
+    --muted: #5f6673;
+    --border: #d9dde3;
+    --accent: #2f6fed;
+    --accent-soft: #e8f0fe;
+    --good: #1a7f37;
+    --bad: #c2410c;
+    --rec: #b45309;
+    --rec-soft: #fef3c7;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+  }
+  .wrap { max-width: 820px; margin: 0 auto; padding: 0 16px 140px; }
+
+  header.top {
+    position: sticky; top: 0; z-index: 10;
+    background: var(--bg);
+    padding: 20px 0 12px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .intro { color: var(--muted); margin: 0 0 12px; white-space: pre-wrap; }
+  .progress-row { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--muted); }
+  .bar { flex: 1; height: 8px; background: var(--border); border-radius: 99px; overflow: hidden; }
+  .bar > i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+
+  section.q {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 18px 14px;
+    margin-bottom: 18px;
+  }
+  section.q.answered { border-color: var(--accent); }
+  .q-head { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; margin-bottom: 4px; }
+  .q-no { font-weight: 700; color: var(--accent); }
+  .chip { font-size: 12px; padding: 1px 8px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); }
+  .chip.multi { background: #f1f5f9; color: var(--muted); }
+  .q-title { font-size: 17px; font-weight: 600; margin: 0 0 4px; }
+  .q-context { color: var(--muted); font-size: 14px; margin: 0 0 12px; white-space: pre-wrap; }
+
+  .opt { display: block; position: relative; cursor: pointer; margin-bottom: 10px; }
+  .opt input { position: absolute; opacity: 0; pointer-events: none; }
+  .opt .card {
+    display: grid; grid-template-columns: 28px 1fr; gap: 4px 10px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    transition: border-color .15s, background .15s;
+  }
+  .opt:hover .card { border-color: #aab4c3; }
+  .opt input:focus-visible + .card { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .opt input:checked + .card { border-color: var(--accent); background: var(--accent-soft); }
+  .mark {
+    grid-row: 1 / span 4;
+    width: 22px; height: 22px; margin-top: 2px;
+    border: 2px solid #9aa4b2; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; color: #fff;
+  }
+  .multi-q .mark { border-radius: 5px; }
+  .opt input:checked + .card .mark { border-color: var(--accent); background: var(--accent); }
+  .opt input:checked + .card .mark::after { content: "✓"; }
+  .opt-label { font-weight: 600; }
+  .opt-label .letter { color: var(--accent); margin-right: 6px; }
+  .rec { font-size: 12px; font-weight: 600; padding: 1px 8px; margin-left: 6px; border-radius: 99px; background: var(--rec-soft); color: var(--rec); }
+  .line { font-size: 14px; color: var(--muted); }
+  .line b { font-weight: 600; margin-right: 4px; }
+  .line.effect b { color: var(--good); }
+  .line.cost b { color: var(--bad); }
+
+  .note { margin-top: 6px; }
+  .note label { font-size: 13px; color: var(--muted); display: block; margin-bottom: 4px; }
+  .note textarea {
+    width: 100%; min-height: 44px; resize: vertical;
+    font: inherit; font-size: 15px;
+    padding: 8px 10px;
+    border: 1.5px solid var(--border); border-radius: 8px;
+    background: #fff; color: var(--text);
+  }
+  .note textarea:focus { outline: none; border-color: var(--accent); }
+
+  footer.bottom {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    background: rgba(255,255,255,.96);
+    border-top: 1px solid var(--border);
+    padding: 12px 16px;
+  }
+  .bottom-inner { max-width: 820px; margin: 0 auto; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .bottom-inner .status { flex: 1; font-size: 14px; color: var(--muted); min-width: 160px; }
+  button.copy {
+    font: inherit; font-weight: 600;
+    padding: 10px 22px;
+    border: 0; border-radius: 8px;
+    background: var(--accent); color: #fff;
+    cursor: pointer;
+  }
+  button.copy:hover { filter: brightness(1.08); }
+  button.ghost {
+    font: inherit; font-size: 14px;
+    padding: 9px 14px;
+    border: 1px solid var(--border); border-radius: 8px;
+    background: #fff; color: var(--muted); cursor: pointer;
+  }
+  #fallback { display: none; width: 100%; margin-top: 10px; min-height: 160px; font: 13px/1.5 ui-monospace, Menlo, monospace; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1 id="title"></h1>
+    <p class="intro" id="intro"></p>
+    <div class="progress-row">
+      <div class="bar"><i id="bar"></i></div>
+      <span id="progress-text">已答 0 / 0</span>
+    </div>
+  </header>
+  <main id="questions"></main>
+</div>
+
+<footer class="bottom">
+  <div class="bottom-inner">
+    <span class="status" id="status">作答完按「複製所有答案」，回 Claude Code 貼上即可。</span>
+    <button class="ghost" id="preview-btn" type="button">預覽文字</button>
+    <button class="copy" id="copy-btn" type="button">複製所有答案</button>
+    <textarea id="fallback" readonly></textarea>
+  </div>
+</footer>
+
+<script type="application/json" id="form-data">__FORM_JSON__</script>
+<script>
+(function () {
+  const data = JSON.parse(document.getElementById("form-data").textContent);
+  const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const root = document.getElementById("questions");
+
+  document.getElementById("title").textContent = data.title || "問題清單";
+  document.title = data.title || "問題清單";
+  const intro = document.getElementById("intro");
+  if (data.intro) intro.textContent = data.intro; else intro.remove();
+
+  function el(tag, cls, text) {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+
+  data.questions.forEach(function (q, qi) {
+    const multi = !!q.multi;
+    const sec = el("section", "q" + (multi ? " multi-q" : ""));
+    sec.dataset.index = qi;
+
+    const head = el("div", "q-head");
+    head.appendChild(el("span", "q-no", "Q" + (qi + 1)));
+    if (q.header) head.appendChild(el("span", "chip", q.header));
+    if (multi) head.appendChild(el("span", "chip multi", "可複選"));
+    sec.appendChild(head);
+    sec.appendChild(el("p", "q-title", q.question));
+    if (q.context) sec.appendChild(el("p", "q-context", q.context));
+
+    (q.options || []).forEach(function (o, oi) {
+      const label = el("label", "opt");
+      const input = document.createElement("input");
+      input.type = multi ? "checkbox" : "radio";
+      input.name = "q" + qi;
+      input.value = oi;
+      if (!multi) {
+        // 單選題再點一次已選的選項 = 取消選取
+        label.addEventListener("pointerdown", function () { input.dataset.was = input.checked ? "1" : ""; });
+        input.addEventListener("click", function () {
+          if (input.dataset.was === "1") { input.checked = false; input.dataset.was = ""; refresh(); }
+        });
+      }
+      label.appendChild(input);
+
+      const card = el("div", "card");
+      card.appendChild(el("span", "mark"));
+      const title = el("div", "opt-label");
+      title.appendChild(el("span", "letter", LETTERS[oi]));
+      title.appendChild(document.createTextNode(o.label));
+      if (o.recommended) title.appendChild(el("span", "rec", "推薦"));
+      card.appendChild(title);
+      if (o.desc) {
+        const d = el("div", "line desc");
+        d.appendChild(el("b", null, "說明："));
+        d.appendChild(document.createTextNode(o.desc));
+        card.appendChild(d);
+      }
+      if (o.effect) {
+        const e = el("div", "line effect");
+        e.appendChild(el("b", null, "✓ 選了之後："));
+        e.appendChild(document.createTextNode(o.effect));
+        card.appendChild(e);
+      }
+      if (o.cost) {
+        const c = el("div", "line cost");
+        c.appendChild(el("b", null, "✗ 代價："));
+        c.appendChild(document.createTextNode(o.cost));
+        card.appendChild(c);
+      }
+      label.appendChild(card);
+      sec.appendChild(label);
+    });
+
+    const note = el("div", "note");
+    const hasOptions = (q.options || []).length > 0;
+    const nl = el("label", null, hasOptions ? "補充說明／都不是，我想要：" : "你的回答：");
+    const ta = document.createElement("textarea");
+    ta.placeholder = q.placeholder || (hasOptions ? "可留空" : "");
+    ta.id = "note-" + qi;
+    nl.htmlFor = ta.id;
+    note.appendChild(nl);
+    note.appendChild(ta);
+    sec.appendChild(note);
+
+    root.appendChild(sec);
+  });
+
+  function collect() {
+    return data.questions.map(function (q, qi) {
+      const picked = Array.prototype.slice
+        .call(document.querySelectorAll('input[name="q' + qi + '"]:checked'))
+        .map(function (i) { return Number(i.value); });
+      const note = document.getElementById("note-" + qi).value.trim();
+      return { q: q, picked: picked, note: note, answered: picked.length > 0 || note !== "" };
+    });
+  }
+
+  function refresh() {
+    const rows = collect();
+    const done = rows.filter(function (r) { return r.answered; }).length;
+    const total = rows.length;
+    document.getElementById("bar").style.width = (total ? (done / total) * 100 : 0) + "%";
+    document.getElementById("progress-text").textContent = "已答 " + done + " / " + total;
+    document.querySelectorAll("section.q").forEach(function (s, i) {
+      s.classList.toggle("answered", rows[i].answered);
+    });
+    return rows;
+  }
+
+  function buildText() {
+    const rows = refresh();
+    const out = ["# " + (data.title || "問題清單") + " — 作答結果", ""];
+    rows.forEach(function (r, i) {
+      const q = r.q;
+      out.push("Q" + (i + 1) + (q.header ? "【" + q.header + "】" : "") + " " + q.question + (q.multi ? "（複選）" : ""));
+      if (r.picked.length) {
+        out.push("答：" + r.picked.map(function (oi) { return LETTERS[oi] + " " + q.options[oi].label; }).join("、"));
+      } else if (!r.note) {
+        out.push("答：（未作答）");
+      } else if ((q.options || []).length) {
+        out.push("答：（未選選項，見補充）");
+      }
+      if (r.note) out.push((q.options || []).length ? "補充：" + r.note : "答：" + r.note);
+      out.push("");
+    });
+    const missing = rows.filter(function (r) { return !r.answered; }).length;
+    if (missing) out.push("※ 尚有 " + missing + " 題未作答，請 Claude 自行判斷或採用推薦選項。");
+    return out.join("\n").trim() + "\n";
+  }
+
+  function setStatus(msg) { document.getElementById("status").textContent = msg; }
+
+  function showFallback(text) {
+    const fb = document.getElementById("fallback");
+    fb.value = text;
+    fb.style.display = "block";
+    // 底部列變高了，把內容區的留白跟著加高，避免蓋住最後一題
+    document.querySelector(".wrap").style.paddingBottom = (document.querySelector("footer.bottom").offsetHeight + 24) + "px";
+    fb.focus();
+    fb.select();
+  }
+
+  document.getElementById("copy-btn").addEventListener("click", function () {
+    const text = buildText();
+    const rows = collect();
+    const missing = rows.filter(function (r) { return !r.answered; }).length;
+    const suffix = missing ? "（還有 " + missing + " 題未作答）" : "";
+    function legacyCopy() {
+      showFallback(text);
+      let ok = false;
+      try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+      setStatus(ok ? "已複製" + suffix + "，回 Claude Code 貼上即可。" : "自動複製失敗，請在下方文字框按 ⌘C 手動複製。");
+    }
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(function () {
+        setStatus("已複製" + suffix + "，回 Claude Code 貼上即可。");
+      }, legacyCopy);
+    } else {
+      legacyCopy();
+    }
+  });
+
+  document.getElementById("preview-btn").addEventListener("click", function () {
+    showFallback(buildText());
+    setStatus("下方是會被複製的文字。");
+  });
+
+  root.addEventListener("change", refresh);
+  root.addEventListener("input", refresh);
+  refresh();
+})();
+</script>
+</body>
+</html>
