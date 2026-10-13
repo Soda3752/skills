@@ -91,8 +91,8 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 16px;
-    padding: 32px 32px 28px;
-    margin-bottom: 40px;
+    padding: 26px 28px 22px;
+    margin-bottom: 32px;
     transition: opacity .2s;
   }
   section.q.answered { opacity: .55; }
@@ -103,11 +103,11 @@
   .q-meta { font-size: 13px; color: var(--faint); margin-bottom: 8px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
   .q-meta .topic { color: var(--accent); font-weight: 600; }
   .q-meta .multi-tag { padding: 0 8px; border-radius: 99px; background: #f0f2f5; color: var(--muted); font-size: 12px; }
-  .q-title { font-size: 22px; line-height: 1.45; font-weight: 700; margin: 0 0 10px; }
-  .q-context { color: var(--muted); font-size: 15px; margin: 0 0 24px; white-space: pre-wrap; }
-  .q-title + .options { margin-top: 24px; }
+  .q-title { font-size: 22px; line-height: 1.45; font-weight: 700; margin: 0 0 6px; }
+  .q-context { color: var(--muted); font-size: 15px; margin: 0 0 16px; white-space: pre-wrap; }
+  .q-title + .options { margin-top: 16px; }
 
-  .options { display: flex; flex-direction: column; gap: 14px; }
+  .options { display: flex; flex-direction: column; gap: 10px; }
 
   /* ── 選項卡片 ── */
   .opt { display: block; position: relative; cursor: pointer; }
@@ -115,19 +115,19 @@
   .opt .card {
     border: 1.5px solid var(--border);
     border-radius: 12px;
-    padding: 18px 20px;
+    padding: 12px 16px;
     transition: border-color .15s, background .15s, box-shadow .15s;
   }
-  .opt.recommended .card { border-left: 4px solid var(--rec); padding-left: 17.5px; }
+  .opt.recommended .card { border-left: 4px solid var(--rec); padding-left: 13.5px; }
   .opt:hover .card { border-color: var(--border-strong); }
   .opt.recommended:hover .card { border-left-color: var(--rec); }
   .opt input:focus-visible + .card { outline: 2px solid var(--accent); outline-offset: 2px; }
   .opt input:checked + .card { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 1px var(--accent); }
   .opt.recommended input:checked + .card { border-left-color: var(--rec); }
 
-  .opt-head { display: grid; grid-template-columns: 24px 1fr; gap: 0 14px; align-items: start; }
+  .opt-head { display: grid; grid-template-columns: 22px 1fr; gap: 0 12px; align-items: start; }
   .mark {
-    width: 22px; height: 22px; margin-top: 2px;
+    width: 20px; height: 20px; margin-top: 3px;
     border: 2px solid #a3acb9; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     font-size: 13px; color: #fff;
@@ -135,27 +135,33 @@
   .multi-q .mark { border-radius: 6px; }
   .opt input:checked + .card .mark { border-color: var(--accent); background: var(--accent); }
   .opt input:checked + .card .mark::after { content: "✓"; }
-  .opt-label { font-size: 17px; font-weight: 600; line-height: 1.5; }
+  .opt-label { font-size: 16px; font-weight: 600; line-height: 1.6; }
   .opt-label .letter { color: var(--accent); margin-right: 8px; }
   .rec { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 8px; margin-left: 8px; border-radius: 99px; background: var(--rec-soft); color: var(--rec); vertical-align: 2px; }
-  .opt-desc { grid-column: 2; color: var(--muted); font-size: 15px; margin-top: 2px; }
+  /* 說明接在選項名稱後面同一行 */
+  .opt-desc { color: var(--muted); font-size: 14px; font-weight: 400; margin-left: 10px; }
 
+  /* 「選了之後／代價」各一行：小色塊標籤 + 文字 */
   .tradeoff {
-    display: flex; flex-direction: column; gap: 8px;
-    margin: 14px 0 0 38px;
+    display: grid; grid-template-columns: auto 1fr; gap: 4px 10px;
+    margin: 6px 0 0 34px;
+    font-size: 14px; line-height: 1.6;
   }
-  .tradeoff .box { border-radius: 10px; padding: 10px 14px; font-size: 14px; line-height: 1.65; }
-  .tradeoff .box h4 { margin: 0 0 4px; font-size: 12px; font-weight: 700; letter-spacing: .04em; }
-  .tradeoff .effect { background: var(--good-soft); }
-  .tradeoff .effect h4 { color: var(--good); }
-  .tradeoff .cost { background: var(--bad-soft); }
-  .tradeoff .cost h4 { color: var(--bad); }
+  .tradeoff .tag {
+    font-size: 12px; font-weight: 700;
+    padding: 0 8px; border-radius: 6px;
+    line-height: 20px; margin-top: 1px;
+    white-space: nowrap; text-align: center;
+  }
+  .tradeoff .tag.effect { background: var(--good-soft); color: var(--good); }
+  .tradeoff .tag.cost { background: var(--bad-soft); color: var(--bad); }
+  .tradeoff .txt { color: var(--text); }
 
   /* ── 補充說明 ── */
-  .note { margin-top: 20px; }
+  .note { margin-top: 14px; }
   .note label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
   .note textarea {
-    width: 100%; min-height: 72px; resize: vertical;
+    width: 100%; min-height: 48px; resize: vertical;
     font: inherit; font-size: 15px;
     padding: 10px 12px;
     border: 1.5px solid var(--border); border-radius: 10px;
@@ -311,23 +317,19 @@
         title.appendChild(el("span", "letter", LETTERS[oi]));
         title.appendChild(document.createTextNode(o.label));
         if (o.recommended) title.appendChild(el("span", "rec", "推薦"));
+        if (o.desc) title.appendChild(el("span", "opt-desc", o.desc));
         head.appendChild(title);
-        if (o.desc) head.appendChild(el("div", "opt-desc", o.desc));
         card.appendChild(head);
 
         if (o.effect || o.cost) {
           const tr = el("div", "tradeoff");
           if (o.effect) {
-            const b = el("div", "box effect");
-            b.appendChild(el("h4", null, "選了之後"));
-            b.appendChild(el("div", null, o.effect));
-            tr.appendChild(b);
+            tr.appendChild(el("span", "tag effect", "選了之後"));
+            tr.appendChild(el("span", "txt", o.effect));
           }
           if (o.cost) {
-            const b = el("div", "box cost");
-            b.appendChild(el("h4", null, "代價"));
-            b.appendChild(el("div", null, o.cost));
-            tr.appendChild(b);
+            tr.appendChild(el("span", "tag cost", "代價"));
+            tr.appendChild(el("span", "txt", o.cost));
           }
           card.appendChild(tr);
         }
